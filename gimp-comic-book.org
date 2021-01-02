@@ -2,11 +2,6 @@
 #+title: gimp comic book filter
 #+author: Ian Martins
 #+email: ianxm@jhu.edu
-
-The first line configures emacs to run the =generate= source code
-block whenever this file is saved, which generates the scripts and
-readme.  See [[*Literate Programming][Literate Programming]] for more details.
-
 * Comic Book Filter
 ** Overview
 This is a GIMP filter to convert an image so that it looks like a
@@ -855,7 +850,7 @@ This simply merges the sketch layer onto the background layer.
 ** References
   - using [[https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html][this]] script-fu tutorial
   - using [[https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html][this]] scheme reference
-** Literate Programming
+* Literate Programming
 This is written as a literate program using emacs org-mode.  [[file:gimp-comic-book.org][This file]]
 contains the code and documentation for the comic book filter.  When
 it is saved, the source code is generated using =org-babel-tangle= and
@@ -870,6 +865,9 @@ using =org-org-export-to-org=.
   (org-export-to-file 'md "readme.md")
 #+end_src
 
+The first line of [[file:gimp-comic-book.org][the org file]] configures emacs to run the =generate=
+source code block whenever this file is saved, which generates the
+scripts and readme.  See [[*Literate Programming][Literate Programming]] for more details.
 * GIMP Console                                                     :noexport:
 This contains some example snippits for interacting with an image
 using the GIMP debugging console.
