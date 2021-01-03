@@ -1,28 +1,28 @@
 # Table of Contents
 
-1.  [Comic Book Filter](#org094849f)
-    1.  [Overview](#orgf63cd51)
-    2.  [Example](#orgd92db5d)
-    3.  [Comic Book](#org201552a)
-        1.  [General Idea](#org4964365)
-        2.  [steps](#org57bf0eb)
-        3.  [scripts](#org76e04b1)
-    4.  [Previous Attemps](#org68778e1)
-        1.  [Sketch A](#orga478fb5)
-        2.  [Sketch B](#org829bab2)
-        3.  [Comic Book A](#org057e141)
-        4.  [Comic Book B](#orgadd42a3)
-    5.  [References](#orgf78381e)
-2.  [Literate Programming](#org1433911)
+1.  [Comic Book Filter](#orgda93ed2)
+    1.  [Overview](#orgd3d5d63)
+    2.  [Example](#orgda56576)
+    3.  [Comic Book](#org3af34ea)
+        1.  [General Idea](#org5d1b3b0)
+        2.  [Steps](#org0d303c3)
+        3.  [Script](#org5009c48)
+    4.  [Previous Attemps](#orgd94ad0c)
+        1.  [Sketch A](#orgef295bb)
+        2.  [Sketch B](#org3b5297f)
+        3.  [Comic Book A](#orgd5b8348)
+        4.  [Comic Book B](#org2bda879)
+    5.  [References](#org00490ac)
+2.  [Literate Programming](#orgcd20e0e)
 
 
 
-<a id="org094849f"></a>
+<a id="orgda93ed2"></a>
 
 # Comic Book Filter
 
 
-<a id="orgf63cd51"></a>
+<a id="orgd3d5d63"></a>
 
 ## Overview
 
@@ -31,7 +31,7 @@ frame from a comic book.  This is similar to to the many cartoon
 filters out there.
 
 
-<a id="orgd92db5d"></a>
+<a id="orgda56576"></a>
 
 ## Example
 
@@ -52,12 +52,12 @@ result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background.jpg)
 
 
-<a id="org201552a"></a>
+<a id="org3af34ea"></a>
 
 ## Comic Book
 
 
-<a id="org4964365"></a>
+<a id="org5d1b3b0"></a>
 
 ### General Idea
 
@@ -72,9 +72,9 @@ the image and brighten the colors.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org57bf0eb"></a>
+<a id="org0d303c3"></a>
 
-### steps
+### Steps
 
 -   load an image
     -   name the layer "background"
@@ -100,11 +100,17 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="org76e04b1"></a>
+<a id="org5009c48"></a>
 
-### scripts
+### Script
+
+The following sections go through the comic book filter script in
+detail.  The script is examined in sections here, but it is combined
+into a single script for GIMP.
 
 1.  license
+
+    This is the GPLv3 software license.  We add it near the top of each script.
 
         ; LICENSE
         ;
@@ -353,7 +359,7 @@ The final script is [here](scripts/comic-book.scm).
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
 
-<a id="org68778e1"></a>
+<a id="orgd94ad0c"></a>
 
 ## Previous Attemps
 
@@ -361,7 +367,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orga478fb5"></a>
+<a id="orgef295bb"></a>
 
 ### Sketch A
 
@@ -376,6 +382,9 @@ is that you get parallel squiggles that appear wormy from close up.
 
 The final script is [here](scripts/sketch-a.scm).
 
+This is an example:
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_sketch_a.jpg)
+
 1.  Steps
 
     -   load an image
@@ -388,7 +397,7 @@ The final script is [here](scripts/sketch-a.scm).
         -   set mode DIVIDE
 
 
-<a id="org829bab2"></a>
+<a id="org3b5297f"></a>
 
 ### Sketch B
 
@@ -401,6 +410,9 @@ non-interactively.  This also has a cool artistic look for some photos
 when zoomed out but up close it can be messy.
 
 The final script is [here](scripts/sketch-b.scm).
+
+This is an example:
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_sketch_b.jpg)
 
 1.  Steps
 
@@ -430,7 +442,7 @@ The final script is [here](scripts/sketch-b.scm).
         -   Image > Mode > RGB
 
 
-<a id="org057e141"></a>
+<a id="orgd5b8348"></a>
 
 ### Comic Book A
 
@@ -439,6 +451,9 @@ like Sketch A but then masks them on top of the background layer like
 Sketch B.
 
 The final script is [here](scripts/comic-book-a.scm).
+
+This is an example:
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic_book_a.jpg)
 
 1.  Steps
 
@@ -473,7 +488,7 @@ The final script is [here](scripts/comic-book-a.scm).
         -   Image > Mode > RGB
 
 
-<a id="orgadd42a3"></a>
+<a id="org2bda879"></a>
 
 ### Comic Book B
 
@@ -483,6 +498,9 @@ detection algorithm instead of Sobel, and only runs it once.  It then
 equalizes and desaturates and sets Levels to reduce noise.
 
 The final script is [here](scripts/comic-book-b.scm).
+
+This is an example:
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic_book_b.jpg)
 
 1.  steps
 
@@ -503,23 +521,23 @@ The final script is [here](scripts/comic-book-b.scm).
         -   merge visible layers
 
 
-<a id="orgf78381e"></a>
+<a id="org00490ac"></a>
 
 ## References
 
--   using [this](https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html) script-fu tutorial
--   using [this](https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html) scheme reference
+-   [script-fu tutorial](https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html)
+-   [scheme reference](https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html)
 
 
-<a id="org1433911"></a>
+<a id="orgcd20e0e"></a>
 
 # Literate Programming
 
-This is written as a literate program using emacs org-mode.  [This file](gimp-comic-book.md)
-contains the code and documentation for the comic book filter.  When
-it is saved, the source code is generated using `org-babel-tangle` and
-then copied to GIMP's scripts directory, and the readme is generated
-using `org-org-export-to-org`.
+This is written as a [literate program](https://en.wikipedia.org/wiki/Literate_programming) using [emacs org-mode](https://orgmode.org/).  [The org
+file](gimp-comic-book.md) contains the code and documentation for the comic book filter.
+When it is saved, the source code is generated using
+`org-babel-tangle` and then copied to GIMP's scripts directory, and
+the readme is generated using `org-md-export-to-pemarkdown`.
 
     (let ((scripts (org-babel-tangle)))
       (dolist (script scripts)
@@ -528,4 +546,4 @@ using `org-org-export-to-org`.
 
 The first line of [the org file](gimp-comic-book.md) configures emacs to run the `generate`
 source code block whenever this file is saved, which generates the
-scripts and readme.  See [Literate Programming](#org1433911) for more details.
+scripts and readme.  See [Literate Programming](#orgcd20e0e) for more details.

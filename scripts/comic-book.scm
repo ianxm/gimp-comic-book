@@ -1,3 +1,5 @@
+;; Comic book filter for GIMP.  Find documentation at https://github.com/ianxm/gimp-comic-book
+
 ; LICENSE
 ;
 ;    This program is free software: you can redistribute it and/or modify

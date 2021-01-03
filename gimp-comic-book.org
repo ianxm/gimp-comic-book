@@ -36,7 +36,7 @@ the image and brighten the colors.
 
 The final script is [[file:scripts/comic-book.scm][here]].
 
-*** steps
+*** Steps
 - load an image
   - name the layer "background"
   - scale if too small
@@ -59,8 +59,16 @@ The final script is [[file:scripts/comic-book.scm][here]].
   - Colors > Levels
   - Colors > Hue Saturation
   - merge layers
-*** scripts
+*** Script
+
+The following sections go through the comic book filter script in
+detail.  The script is examined in sections here, but it is combined
+into a single script for GIMP.
+
 **** license
+
+This is the GPLv3 software license.  We add it near the top of each script.
+
 #+name: license
 #+begin_src scheme
 ; LICENSE
@@ -328,6 +336,8 @@ we want them to be black, so we'll go though and darken them here.
 
 **** full                                                          :noexport:
 #+begin_src scheme :noweb yes :tangle scripts/comic-book.scm
+  ;; Comic book filter for GIMP.  Find documentation at https://github.com/ianxm/gimp-comic-book
+
   <<license>>
 
   <<convert-comic-book>>
@@ -350,6 +360,9 @@ If you look closely it can be messy.  A side effect of repeating Sobel
 is that you get parallel squiggles that appear wormy from close up.
 
 The final script is [[file:scripts/sketch-a.scm][here]].
+
+This is an example:
+[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_sketch_a.jpg]]
 **** Steps
 - load an image
 - sketch layer
@@ -418,6 +431,9 @@ non-interactively.  This also has a cool artistic look for some photos
 when zoomed out but up close it can be messy.
 
 The final script is [[file:scripts/sketch-b.scm][here]].
+
+This is an example:
+[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_sketch_b.jpg]]
 **** Steps
 - load an image
   - name the layer "background"
@@ -530,6 +546,9 @@ like Sketch A but then masks them on top of the background layer like
 Sketch B.
 
 The final script is [[file:scripts/comic-book-a.scm][here]].
+
+This is an example:
+[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic_book_a.jpg]]
 **** Steps
 - load an image
   - name the layer "background"
@@ -652,6 +671,9 @@ detection algorithm instead of Sobel, and only runs it once.  It then
 equalizes and desaturates and sets Levels to reduce noise.
 
 The final script is [[file:scripts/comic-book-b.scm][here]].
+
+This is an example:
+[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic_book_b.jpg]]
 **** steps
 - load an image
   - scale if too small
@@ -848,14 +870,14 @@ This simply merges the sketch layer onto the background layer.
   <<register-comic-book-b>>
 #+end_src
 ** References
-  - using [[https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html][this]] script-fu tutorial
-  - using [[https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html][this]] scheme reference
+  - [[https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html][script-fu tutorial]]
+  - [[https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html][scheme reference]]
 * Literate Programming
-This is written as a literate program using emacs org-mode.  [[file:gimp-comic-book.org][This file]]
-contains the code and documentation for the comic book filter.  When
-it is saved, the source code is generated using =org-babel-tangle= and
-then copied to GIMP's scripts directory, and the readme is generated
-using =org-org-export-to-org=.
+This is written as a [[https://en.wikipedia.org/wiki/Literate_programming][literate program]] using [[https://orgmode.org/][emacs org-mode]].  [[file:gimp-comic-book.org][The org
+file]] contains the code and documentation for the comic book filter.
+When it is saved, the source code is generated using
+=org-babel-tangle= and then copied to GIMP's scripts directory, and
+the readme is generated using =org-md-export-to-pemarkdown=.
 
 #+name: generate
 #+begin_src elisp :results none :var scripts-dir="~/.config/GIMP/2.10/scripts/"
