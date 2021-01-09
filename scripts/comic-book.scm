@@ -22,7 +22,7 @@
 
   (let* ((width (car (gimp-image-width image)))
          (height (car (gimp-image-height image)))
-         (min-length 2000)
+         (min-length 1500)
          (max-length 4000))
 
     (when (= allow-resize? TRUE)
@@ -31,7 +31,8 @@
        ((< width min-length) (gimp-image-scale image min-length (/ (* height min-length) width)))
        ((> height max-length) (gimp-image-scale image (/ (* width max-length) height) max-length))
        ((> width max-length) (gimp-image-scale image max-length (/ (* height max-length) width))))
-      (if (< (max (* width 1.5) (* height 1.5)) max-length)
+      (if (and allow-resize?
+               (< (max (* width 2) (* height 2)) max-length))
           (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
     (if (> lightness 0)
@@ -92,15 +93,13 @@
                                 (- 1 (* lightness 0.2))
                                 TRUE 1 (* lightness 0.5) 1 TRUE))
 
-      (gimp-image-set-active-layer image trace-layer)
       (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
-      (gimp-image-set-active-layer image sketch-layer)
       (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
       (set! background-layer (car (gimp-image-flatten image))))
 
     (if (and (= allow-resize? TRUE)
-             (< (max width height) max-length))
+             (< (max width height) min-length))
         (gimp-image-scale image width height)))
 
   (gimp-image-undo-group-end image)

@@ -16,11 +16,11 @@ Here is the original:
 Here is the final result:
 [[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic.jpg]]
 
-These are the GIMP filter settings I used:
+These are the GIMP filter settings I used for this image:
 [[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_dialog.jpg]]
 
-Here are the overlay and background layers that make up the final
-result:
+In case you're curious, here are the overlay and background layers
+that make up the final result:
 [[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_overlays.jpg]]
 [[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background.jpg]]
 
@@ -41,18 +41,18 @@ The final script is [[file:scripts/comic-book.scm][here]].
   - name the layer "background"
   - scale if too small
   - soft glow?
-- trace layer
+- trace layer (fine detail)
   - duplicate layer (on top, trace)
   - Filters > Edge Detect > Edge (Sobel, 1)
   - Colors > Desaturate > Desaturate
   - Colors > Levels
   - Colors > Invert
   - set layer mode MULTIPLY
-- sketch layer
+- sketch layer (detail)
   - duplicate layer (on top, sketch)
   - Filters > Artistic > Photocopy
   - set layer mode MULTIPLY
-- background layer
+- background layer (colors)
   - Image > Mode > Indexed (n colors)
   - Filters > Blur > Selective Gaussian Blur (repeat)
   - Image > Mode > RGB
@@ -89,7 +89,7 @@ This is the GPLv3 software license.  We add it near the top of each script.
 **** register
 This registers the script with GIMP and configures the dialog with the
 parameters that will be passed to the filter.  Everything is
-boilerblate except four of the parameters, which I'll go over now.
+boilerblate except five of the parameters, which I'll go over now.
 
 - Smoothness :: a higher value results in more background blurring,
   which looks like smoother curves where indexed colors meet
@@ -166,7 +166,7 @@ Finally we flush the GIMP display to update the image in the buffer.
 
     (let* ((width (car (gimp-image-width image)))
            (height (car (gimp-image-height image)))
-           (min-length 2000)
+           (min-length 1500)
            (max-length 4000))
 
       (when (= allow-resize? TRUE)
@@ -175,7 +175,8 @@ Finally we flush the GIMP display to update the image in the buffer.
          ((< width min-length) (gimp-image-scale image min-length (/ (* height min-length) width)))
          ((> height max-length) (gimp-image-scale image (/ (* width max-length) height) max-length))
          ((> width max-length) (gimp-image-scale image max-length (/ (* height max-length) width))))
-        (if (< (max (* width 1.5) (* height 1.5)) max-length)
+        (if (and allow-resize?
+                 (< (max (* width 2) (* height 2)) max-length))
             (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
       (if (> lightness 0)
@@ -194,7 +195,7 @@ Finally we flush the GIMP display to update the image in the buffer.
         (set! background-layer (car (gimp-image-flatten image))))
 
       (if (and (= allow-resize? TRUE)
-               (< (max width height) max-length))
+               (< (max width height) min-length))
           (gimp-image-scale image width height)))
 
     (gimp-image-undo-group-end image)
@@ -328,9 +329,7 @@ we want them to be black, so we'll go though and darken them here.
 
 #+name: darken-overlays
 #+begin_src scheme
-  (gimp-image-set-active-layer image trace-layer)
   (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
-  (gimp-image-set-active-layer image sketch-layer)
   (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 #+end_src
 

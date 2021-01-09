@@ -1,28 +1,28 @@
 # Table of Contents
 
-1.  [Comic Book Filter](#orgda93ed2)
-    1.  [Overview](#orgd3d5d63)
-    2.  [Example](#orgda56576)
-    3.  [Comic Book](#org3af34ea)
-        1.  [General Idea](#org5d1b3b0)
-        2.  [Steps](#org0d303c3)
-        3.  [Script](#org5009c48)
-    4.  [Previous Attemps](#orgd94ad0c)
-        1.  [Sketch A](#orgef295bb)
-        2.  [Sketch B](#org3b5297f)
-        3.  [Comic Book A](#orgd5b8348)
-        4.  [Comic Book B](#org2bda879)
-    5.  [References](#org00490ac)
-2.  [Literate Programming](#orgcd20e0e)
+1.  [Comic Book Filter](#org6e21f95)
+    1.  [Overview](#orgc9aed8e)
+    2.  [Example](#orgf5ef009)
+    3.  [Comic Book](#org2a28716)
+        1.  [General Idea](#org68548d5)
+        2.  [Steps](#orgfa02744)
+        3.  [Script](#org794e181)
+    4.  [Previous Attemps](#orgd83f486)
+        1.  [Sketch A](#orgdd8f6b4)
+        2.  [Sketch B](#org4676c8f)
+        3.  [Comic Book A](#org899f765)
+        4.  [Comic Book B](#org31108a0)
+    5.  [References](#orgd6abf7e)
+2.  [Literate Programming](#org9faaf6e)
 
 
 
-<a id="orgda93ed2"></a>
+<a id="org6e21f95"></a>
 
 # Comic Book Filter
 
 
-<a id="orgd3d5d63"></a>
+<a id="orgc9aed8e"></a>
 
 ## Overview
 
@@ -31,7 +31,7 @@ frame from a comic book.  This is similar to to the many cartoon
 filters out there.
 
 
-<a id="orgda56576"></a>
+<a id="orgf5ef009"></a>
 
 ## Example
 
@@ -43,21 +43,21 @@ Here is the original:
 Here is the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic.jpg)
 
-These are the GIMP filter settings I used:
+These are the GIMP filter settings I used for this image:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_dialog.jpg)
 
-Here are the overlay and background layers that make up the final
-result:
+In case you're curious, here are the overlay and background layers
+that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_overlays.jpg)
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background.jpg)
 
 
-<a id="org3af34ea"></a>
+<a id="org2a28716"></a>
 
 ## Comic Book
 
 
-<a id="org5d1b3b0"></a>
+<a id="org68548d5"></a>
 
 ### General Idea
 
@@ -72,7 +72,7 @@ the image and brighten the colors.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org0d303c3"></a>
+<a id="orgfa02744"></a>
 
 ### Steps
 
@@ -80,18 +80,18 @@ The final script is [here](scripts/comic-book.scm).
     -   name the layer "background"
     -   scale if too small
     -   soft glow?
--   trace layer
+-   trace layer (fine detail)
     -   duplicate layer (on top, trace)
     -   Filters > Edge Detect > Edge (Sobel, 1)
     -   Colors > Desaturate > Desaturate
     -   Colors > Levels
     -   Colors > Invert
     -   set layer mode MULTIPLY
--   sketch layer
+-   sketch layer (detail)
     -   duplicate layer (on top, sketch)
     -   Filters > Artistic > Photocopy
     -   set layer mode MULTIPLY
--   background layer
+-   background layer (colors)
     -   Image > Mode > Indexed (n colors)
     -   Filters > Blur > Selective Gaussian Blur (repeat)
     -   Image > Mode > RGB
@@ -100,7 +100,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="org5009c48"></a>
+<a id="org794e181"></a>
 
 ### Script
 
@@ -131,7 +131,7 @@ into a single script for GIMP.
 
     This registers the script with GIMP and configures the dialog with the
     parameters that will be passed to the filter.  Everything is
-    boilerblate except four of the parameters, which I'll go over now.
+    boilerblate except five of the parameters, which I'll go over now.
 
     -   **Smoothness:** a higher value results in more background blurring,
         which looks like smoother curves where indexed colors meet
@@ -204,7 +204,7 @@ into a single script for GIMP.
 
           (let* ((width (car (gimp-image-width image)))
                  (height (car (gimp-image-height image)))
-                 (min-length 2000)
+                 (min-length 1500)
                  (max-length 4000))
 
             (when (= allow-resize? TRUE)
@@ -213,7 +213,8 @@ into a single script for GIMP.
                ((< width min-length) (gimp-image-scale image min-length (/ (* height min-length) width)))
                ((> height max-length) (gimp-image-scale image (/ (* width max-length) height) max-length))
                ((> width max-length) (gimp-image-scale image max-length (/ (* height max-length) width))))
-              (if (< (max (* width 1.5) (* height 1.5)) max-length)
+              (if (and allow-resize?
+                       (< (max (* width 2) (* height 2)) max-length))
                   (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
             (if (> lightness 0)
@@ -232,7 +233,7 @@ into a single script for GIMP.
               (set! background-layer (car (gimp-image-flatten image))))
 
             (if (and (= allow-resize? TRUE)
-                     (< (max width height) max-length))
+                     (< (max width height) min-length))
                 (gimp-image-scale image width height)))
 
           (gimp-image-undo-group-end image)
@@ -353,13 +354,11 @@ into a single script for GIMP.
     When we indexed the colors the overlays may have been lightened, but
     we want them to be black, so we'll go though and darken them here.
 
-        (gimp-image-set-active-layer image trace-layer)
         (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
-        (gimp-image-set-active-layer image sketch-layer)
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
 
-<a id="orgd94ad0c"></a>
+<a id="orgd83f486"></a>
 
 ## Previous Attemps
 
@@ -367,7 +366,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgef295bb"></a>
+<a id="orgdd8f6b4"></a>
 
 ### Sketch A
 
@@ -397,7 +396,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org3b5297f"></a>
+<a id="org4676c8f"></a>
 
 ### Sketch B
 
@@ -442,7 +441,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orgd5b8348"></a>
+<a id="org899f765"></a>
 
 ### Comic Book A
 
@@ -488,7 +487,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org2bda879"></a>
+<a id="org31108a0"></a>
 
 ### Comic Book B
 
@@ -521,7 +520,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org00490ac"></a>
+<a id="orgd6abf7e"></a>
 
 ## References
 
@@ -529,7 +528,7 @@ This is an example:
 -   [scheme reference](https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html)
 
 
-<a id="orgcd20e0e"></a>
+<a id="org9faaf6e"></a>
 
 # Literate Programming
 
@@ -546,4 +545,4 @@ the readme is generated using `org-md-export-to-pemarkdown`.
 
 The first line of [the org file](gimp-comic-book.md) configures emacs to run the `generate`
 source code block whenever this file is saved, which generates the
-scripts and readme.  See [Literate Programming](#orgcd20e0e) for more details.
+scripts and readme.  See [Literate Programming](#org9faaf6e) for more details.
