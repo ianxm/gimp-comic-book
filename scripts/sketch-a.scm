@@ -41,7 +41,7 @@
  "Ian Martins"                            ; author
  "2020, Leah Lefler, Ian Martins"         ; copyright notice
  "December 7, 2020"                       ; date created
- ""                                       ; image type that the script works on
+ "RGB* GRAY*"                             ; image type that the script works on
  SF-IMAGE      "Image"      0             ; the image
  SF-DRAWABLE   "Drawable"   0             ; the layer
  SF-ADJUSTMENT "Darken Steps"       '(2 1 4 1 1 0 1))

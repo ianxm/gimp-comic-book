@@ -72,7 +72,7 @@
  "Ian Martins"                            ; author
  "2020, Dave Neary, Ian Martins"          ; copyright notice
  "December 7, 2020"                       ; date created
- ""                                       ; image type that the script works on
+ "RGB* GRAY*"                             ; image type that the script works on
  SF-IMAGE      "Image"      0             ; the image
  SF-DRAWABLE   "Drawable"   0             ; the layer
  SF-ADJUSTMENT "Line Threshold" '(0.8 0.1 0.9 0.1 0.2 1 0)

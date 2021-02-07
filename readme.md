@@ -1,37 +1,38 @@
+
 # Table of Contents
 
-1.  [Comic Book Filter](#org6e21f95)
-    1.  [Overview](#orgc9aed8e)
-    2.  [Example](#orgf5ef009)
-    3.  [Comic Book](#org2a28716)
-        1.  [General Idea](#org68548d5)
-        2.  [Steps](#orgfa02744)
-        3.  [Script](#org794e181)
-    4.  [Previous Attemps](#orgd83f486)
-        1.  [Sketch A](#orgdd8f6b4)
-        2.  [Sketch B](#org4676c8f)
-        3.  [Comic Book A](#org899f765)
-        4.  [Comic Book B](#org31108a0)
-    5.  [References](#orgd6abf7e)
-2.  [Literate Programming](#org9faaf6e)
+1.  [Comic Book Filter](#org911b98f)
+    1.  [Overview](#org7e862ad)
+    2.  [Example](#orgad7a84f)
+    3.  [Comic Book](#orgc7afe37)
+        1.  [General Idea](#org2b83c4d)
+        2.  [Steps](#orgb743114)
+        3.  [Script](#org4985255)
+    4.  [Previous Attemps](#org52bf6a4)
+        1.  [Sketch A](#orgdadecfa)
+        2.  [Sketch B](#org9392455)
+        3.  [Comic Book A](#org3d02ce3)
+        4.  [Comic Book B](#org04e3353)
+    5.  [References](#org774f5f4)
+2.  [Literate Programming](#org6d890df)
 
 
 
-<a id="org6e21f95"></a>
+<a id="org911b98f"></a>
 
 # Comic Book Filter
 
 
-<a id="orgc9aed8e"></a>
+<a id="org7e862ad"></a>
 
 ## Overview
 
 This is a GIMP filter to convert an image so that it looks like a
-frame from a comic book.  This is similar to to the many cartoon
-filters out there.
+frame from a comic book.  This is similar to the many cartoon filters
+out there.
 
 
-<a id="orgf5ef009"></a>
+<a id="orgad7a84f"></a>
 
 ## Example
 
@@ -43,7 +44,7 @@ Here is the original:
 Here is the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic.jpg)
 
-These are the GIMP filter settings I used for this image:
+These are the GIMP filter settings I used to convert this image:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_dialog.jpg)
 
 In case you're curious, here are the overlay and background layers
@@ -52,12 +53,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background.jpg)
 
 
-<a id="org2a28716"></a>
+<a id="orgc7afe37"></a>
 
 ## Comic Book
 
 
-<a id="org68548d5"></a>
+<a id="org2b83c4d"></a>
 
 ### General Idea
 
@@ -72,14 +73,14 @@ the image and brighten the colors.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orgfa02744"></a>
+<a id="orgb743114"></a>
 
 ### Steps
 
 -   load an image
-    -   name the layer "background"
-    -   scale if too small
-    -   soft glow?
+    -   scale if too small, sharpen if significantly scaled
+    -   Colors > Curves (lighten)
+    -   Fitlers > Artistic > Softglow
 -   trace layer (fine detail)
     -   duplicate layer (on top, trace)
     -   Filters > Edge Detect > Edge (Sobel, 1)
@@ -100,7 +101,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="org794e181"></a>
+<a id="org4985255"></a>
 
 ### Script
 
@@ -111,7 +112,7 @@ into a single script for GIMP.
 1.  license
 
     This is the GPLv3 software license.  We add it near the top of each script.
-
+    
         ; LICENSE
         ;
         ;    This program is free software: you can redistribute it and/or modify
@@ -132,17 +133,17 @@ into a single script for GIMP.
     This registers the script with GIMP and configures the dialog with the
     parameters that will be passed to the filter.  Everything is
     boilerblate except five of the parameters, which I'll go over now.
-
+    
     -   **Smoothness:** a higher value results in more background blurring,
         which looks like smoother curves where indexed colors meet
     -   **Lightness:** a higher value results in lighter colors
     -   **Detail:** a higher value results in more lines
     -   **Fine Detail:** a higher value results in more thin lines
     -   **Allow Resize:** if true, resize the pic to be within bounds that usually work well
-
+    
     The meaning of the values we set is explained in [section 3.4.8 of the
     GIMP doc](https://docs.gimp.org/2.8/en/gimp-using-script-fu-tutorial-first-script.html).
-
+    
         (script-fu-register
          "script-fu-comic-book"                   ; func name
          "Comic Book"                             ; menu label
@@ -150,12 +151,12 @@ into a single script for GIMP.
          "Ian Martins"                            ; author
          "2020, Ian Martins"                      ; copyright notice
          "December 11, 2020"                      ; date created
-         ""                                       ; image type that the script works on
+         "RGB* GRAY*"                             ; image type that the script works on
          SF-IMAGE      "Image"      0             ; the image
          SF-DRAWABLE   "Drawable"   0             ; the layer
          SF-ADJUSTMENT "Colors"           '(20 3 64 1 10 0 0)
          SF-ADJUSTMENT "Smoothness"       '(2 0 5 1 1 0 1)
-         SF-ADJUSTMENT "Lightness"        '(0.3 0 1 0.1 0.2 2 0)
+         SF-ADJUSTMENT "Lightness"        '(0.1 0 1 0.1 0.2 2 0)
          SF-ADJUSTMENT "Detail"           '(0.5 0 1 0.1 0.2 2 0)
          SF-ADJUSTMENT "Fine Detail"      '(0.5 0 1 0.1 0.2 2 0)
          SF-TOGGLE     "Allow Resize"     TRUE)
@@ -164,104 +165,120 @@ into a single script for GIMP.
 3.  convert
 
     This is the top-level function for the Comic Book filter.
-
+    
     We wrap all operations on the image in an undo group so that all of
     the steps show up in GIMP as a single action.  This means that one
     "undo" brings you back to the image before this filter was run.
-
-    Edge detection seems to work best on an image sized in the 2000 to
-    4000 range, so we grow or shrink our image if needed (this can be
-    disabled with the `Allow Resize` parameter).  If we grew an image
+    
+    Edge detection seems to work best on an image sized in the 1200 to
+    4000 range, so we enlarge or shrink our image if needed (this can be
+    disabled with the `Allow Resize` parameter).  If we enlarge an image
     significantly, we also sharpen it because enlarging an image can cause
     it to blur.
-
-    If we grew it at the beginning we shrink it back to its original size
-    at the end.  If we shrunk it at the beginning we leave it since the
-    smaller image may be sufficient and we don't want to resize it
+    
+    If we enlarge it at the beginning we shrink it back to its original
+    size at the end.  If we shrunk it at the beginning we leave it since
+    the smaller image may be sufficient and we don't want to resize it
     unnecessarily.
-
-    The first operation we do on the image is a `softglow` filter.  It is
-    part of ligtening the image so we skip it if the `lightness` parameter
-    was set to zero.  The `softglow` helps to reduce lines in the lighter
-    parts of a photo (often this reduces line-noise on faces).  The
-    `lightness` parameter's range is from `0` to `1` but we scale it to
-    the range `0` to `0.2` to keep it to a reasonable amount of
-    `softglow`.
-
+    
+    The next thing we do to the image is to lighten it.  We apply `curves`
+    and then a `softglow` filter.  We skip both of these if the
+    `lightness` parameter was set to zero.  The `curves` operation
+    lightens the lighter parts of the image while leaving the darks alone.
+    This increases the contrast which helps in edge detection, making the
+    lines we will overlay on the image more pronounced.  The `softglow`
+    helps to reduce lines in the lighter parts of a photo (often this
+    reduces line-noise on faces).  The `lightness` parameter's range is
+    from `0` to `1` but we scale it to the range `0` to `0.2` for
+    `softglow` to keep it to a reasonable level of glowyness.
+    
     Next we create two layers which overlay the background layer with
-    lines, and then work on the background layer.  These steps are covered
-    in greater detail in the section below.
-
-    After creating the overlay layers and modifying the background layer
-    we merge the layers together.
-
+    lines, then work on the background layer, then come back to darken the
+    overlay layers.  These steps are covered in greater detail in the
+    sections below.  Once we're done with the overlay and background
+    layers we merge them together.
+    
     Finally we flush the GIMP display to update the image in the buffer.
-
+    
         (define (script-fu-comic-book image background-layer
                                       colors smoothness lightness
                                       detail fine-detail allow-resize?)
           (gimp-image-undo-group-start image)
-
+        
           (let* ((width (car (gimp-image-width image)))
                  (height (car (gimp-image-height image)))
-                 (min-length 1500)
-                 (max-length 4000))
-
+                 (min-length 1200)
+                 (max-length 4000)
+                 (sf 1))
+        
             (when (= allow-resize? TRUE)
               (cond
-               ((< height min-length) (gimp-image-scale image (/ (* width min-length) height) min-length))
-               ((< width min-length) (gimp-image-scale image min-length (/ (* height min-length) width)))
-               ((> height max-length) (gimp-image-scale image (/ (* width max-length) height) max-length))
-               ((> width max-length) (gimp-image-scale image max-length (/ (* height max-length) width))))
-              (if (and allow-resize?
-                       (< (max (* width 2) (* height 2)) max-length))
-                  (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
-
-            (if (> lightness 0)
-                (plug-in-softglow RUN-NONINTERACTIVE image background-layer 5 (* lightness 0.2) 0.5))
-
-            (let ((sketch-layer (car (gimp-layer-copy background-layer FALSE)))
-                  (trace-layer (car (gimp-layer-copy background-layer FALSE))))
+               ((<= height min-length)
+                (set! sf (/ width height))
+                (gimp-image-scale image (* min-length sf) min-length))
+               ((>= height max-length)
+                (set! sf (/ width height))
+                (gimp-image-scale image (* max-length sf) max-length))
+               ((<= width min-length)
+                (set! sf (/ height width))
+                (gimp-image-scale image min-length (* min-length sf)))
+               ((>= width max-length)
+                (set! sf (/ height width))
+                (gimp-image-scale image max-length (* max-length sf))))
+              (when (> sf 1.2)
+                (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
+        
+            (when (> lightness 0)
+              (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
+                                                                                              0.0 0.0
+                                                                                              0.05 0.0
+                                                                                              0.2 (+ 0.2 (* lightness 0.2))
+                                                                                              0.5  (+ 0.5 (* lightness 0.05))
+                                                                                              1.0 1.0)))
+              (plug-in-softglow RUN-NONINTERACTIVE image background-layer 5 (* lightness 0.2) 0.5))
+        
+            (let* ((sketch-layer (car (gimp-layer-copy background-layer FALSE)))
+                   (trace-layer (car (gimp-layer-copy background-layer FALSE))))
               <<trace-layer>>
-
+        
               <<sketch-layer>>
-
+        
               <<background-layer>>
-
+        
               <<darken-overlays>>
-
+        
               (set! background-layer (car (gimp-image-flatten image))))
-
+        
             (if (and (= allow-resize? TRUE)
                      (< (max width height) min-length))
                 (gimp-image-scale image width height)))
-
+        
           (gimp-image-undo-group-end image)
           (gimp-displays-flush))
-
+    
     Here we create a "trace layer" that traces over lines.  It adds thin
     lines wherever there are edges in the image.  The trace layer usually
-    picks up some detais that the sketch layer misses.
-
+    picks up some details that the sketch layer misses.
+    
     We duplicate the background and add the new layer to the top.  The
     main work is done by the Sobel Edge Detection filter, which we run on
     the new layer.  We desaturate to convert to greyscale since we don't
-    want color info and adjust levels in the trace layer to stengthen the
-    most significant lines and dim the noise.  We use the `Fine Detail`
-    parameter to control this adjustment.  If `Fine Detail` is turned down
-    to zero, we skip this step entirely.npn
-
+    want color info.  Then we adjust levels in the trace layer to
+    stengthen the most significant lines and dim the noise.  We use the
+    `Fine Detail` parameter to control this adjustment.  If `Fine Detail`
+    is turned down to zero, we skip this step entirely.
+    
     Finally we invert the trace layer and set its mode to `MULTIPLY` so
     that the lines show up overlayed on the background.
-
-        (when (> fine-detail 0)
+    
+        (when (> fine-detail 0.0001)
           (gimp-image-add-layer image trace-layer 0)
           (gimp-item-set-name trace-layer "trace")
           (gimp-image-set-active-layer image trace-layer)
-
+        
           (plug-in-edge RUN-NONINTERACTIVE image trace-layer 1 2 0)
           (gimp-drawable-desaturate trace-layer DESATURATE-LUMINANCE)
-
+        
           (let* ((detail-inv (- 1 fine-detail))
                  (detail-low (* detail-inv 0.6))   ; range from 0.6 (lowest) to 0 (highest)
                  (detail-high (+ detail-low 0.3))) ; range from 0.9 (lowest) to 0.5 (highest)
@@ -272,23 +289,24 @@ into a single script for GIMP.
                                        TRUE 1 0 1 TRUE))
           (gimp-drawable-invert trace-layer TRUE)
           (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
-
+    
     Here we create a layer that outlines shapes, which we will call the
     sketch layer.  First we create and add the new layer on top of the
     background layer.
-
+    
     Next we use the `photocopy` filter to convert the layer into lines
-    where there the image is darkest.  We use the `Detail` parameter to
+    where the image is darkest.  We use the `Detail` parameter to
     determine how sensitive photocopy should be.  This does a good job of
     marking edges, but also results in noise in large dark areas.  To
-    reduce that effect we lighten the image before the `photocopy` call
-    and darken it back after.  If `Detail` is turned down to zero we skip
-    this step entirely.
-
+    reduce that effect we lighten the image with a `levels` operation
+    before the `photocopy` call and darken it back after using a `sharpen`
+    operation.  If `Detail` is turned down to zero we skip this step
+    entirely.
+    
     The `photocopy` filter produces an inverted greyscale image so there's
     no need to desaturate or invert the sketch layer.  We just set its
     mode to `MULTIPLY` and are done here.
-
+    
         (when (> detail 0)
           (gimp-image-add-layer image sketch-layer 0)
           (gimp-item-set-name sketch-layer "sketch")
@@ -298,67 +316,64 @@ into a single script for GIMP.
                  (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
             (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 20.0 1.0 1.0 detail-val))
           (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
+        
+          (let ((count 0))
+            (while (< count 2)
+                   (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
+                   (set! count (+ count 1))))
+        
           (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
-
+    
     Here we work on the background layer.
-
+    
     First we convert it to use indexed colors.  This reduces the number of
     colors and results in areas of solid color which look more like
     an illustration than the continuous gradients of a photo.
-
-    Next we run a blur filter to smooth the image.  The number of
-    smoothing iterations is controlled by the `Smoothness` parameter.  If
-    the gaussian filter was run on the RGB image, it would make it blurry,
-    but on an indexed image it smoothes out curves and eliminates some
-    noise.
-
+    
+    Next we run a `median-blur` filter to smooth the image.  The strength
+    and number of smoothing iterations is controlled by the `Smoothness`
+    parameter.  `median-blur` isn't available in GIMP's procedure browser
+    so I hacked my version to provide it.
+    
     Then we blur the sketch layer to clean up the lines and reduce the
     noise from the photocopy filter.  We do this here and not while we're
     working on the sketch layer because we need to do it while the image
-    is indexed.  I wanted to use the gaussian blur but couldn't get it to
-    work so I used a selective gaussian blur with a high threshold, which
-    should be equivalent but slower.
-
-    Actually I'd rather use median blur than gauss for all three blurring
-    runs but GIMP currently doesn't provide a way to run median blur from
-    script-fu.
-
-    For the last step here we give the colors a boost and lighten the
-    image.  Note that the order of those steps matters.  This isn't
-    necessary but illustrations are often brighter and more vivid than
-    reality.  The amount of brightening is controlled by the `Lightness`
-    parameter.
-
+    is indexed.
+    
+    For the last step here we give the colors a little boost and lighten
+    the image.  This isn't necessary but illustrations are often brighter
+    and more vivid than reality.  The amount of brightening is controlled
+    by the `Lightness` parameter.
+    
         (gimp-image-set-active-layer image background-layer)
         (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE colors FALSE TRUE "")
-
+        
         (let ((count 0))
           (while (< count smoothness)
-                 (plug-in-sel-gauss RUN-NONINTERACTIVE image background-layer (+ 2 smoothness) 80)
+                 (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
+                                      (+ 1 smoothness (floor (/ (max width height) 1000)))
+                                      50)
                  (set! count (+ count 1))))
-
+        
         (gimp-image-set-active-layer image sketch-layer)
-        ;; (plug-in-gauss RUN-NONINTERACTIVE image sketch-layer 2 2 0) ; doesn't work
-        (plug-in-sel-gauss RUN-NONINTERACTIVE image sketch-layer 2 255)
-
+        (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 2 50)
+        
         (gimp-image-set-active-layer image background-layer)
         (gimp-image-convert-rgb image)
         (when (> lightness 0)
-            (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 32) 0)
-            (gimp-drawable-levels background-layer
-                                  HISTOGRAM-VALUE
-                                  (* lightness 0.1)
-                                  (- 1 (* lightness 0.2))
-                                  TRUE 1 (* lightness 0.5) 1 TRUE))
-
+            (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
+    
     When we indexed the colors the overlays may have been lightened, but
-    we want them to be black, so we'll go though and darken them here.
-
+    we want the overlay lines to be black, so we'll go though and darken
+    them here.  This is at the end here because we have to do it after the
+    image is converted back to RGB and after the "clean up" blurring while
+    the image was indexed.
+    
         (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
 
-<a id="orgd83f486"></a>
+<a id="org52bf6a4"></a>
 
 ## Previous Attemps
 
@@ -366,7 +381,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgdd8f6b4"></a>
+<a id="orgdadecfa"></a>
 
 ### Sketch A
 
@@ -396,7 +411,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org4676c8f"></a>
+<a id="org9392455"></a>
 
 ### Sketch B
 
@@ -441,7 +456,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org899f765"></a>
+<a id="org3d02ce3"></a>
 
 ### Comic Book A
 
@@ -487,7 +502,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org31108a0"></a>
+<a id="org04e3353"></a>
 
 ### Comic Book B
 
@@ -520,7 +535,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgd6abf7e"></a>
+<a id="org774f5f4"></a>
 
 ## References
 
@@ -528,7 +543,7 @@ This is an example:
 -   [scheme reference](https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html)
 
 
-<a id="org9faaf6e"></a>
+<a id="org6d890df"></a>
 
 # Literate Programming
 
@@ -536,13 +551,14 @@ This is written as a [literate program](https://en.wikipedia.org/wiki/Literate_p
 file](gimp-comic-book.md) contains the code and documentation for the comic book filter.
 When it is saved, the source code is generated using
 `org-babel-tangle` and then copied to GIMP's scripts directory, and
-the readme is generated using `org-md-export-to-pemarkdown`.
+the readme is generated using `org-md-export-to-markdown`.
 
     (let ((scripts (org-babel-tangle)))
       (dolist (script scripts)
         (copy-file script (concat (file-name-as-directory scripts-dir) (file-name-nondirectory script)) t)))
     (org-export-to-file 'md "readme.md")
 
-The first line of [the org file](gimp-comic-book.md) configures emacs to run the `generate`
+The first line of [the org file](gimp-comic-book.md) configures emacs to run the above
 source code block whenever this file is saved, which generates the
-scripts and readme.  See [Literate Programming](#org9faaf6e) for more details.
+scripts and readme.
+

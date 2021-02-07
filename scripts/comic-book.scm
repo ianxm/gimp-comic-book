@@ -22,25 +22,39 @@
 
   (let* ((width (car (gimp-image-width image)))
          (height (car (gimp-image-height image)))
-         (min-length 1500)
-         (max-length 4000))
+         (min-length 1200)
+         (max-length 4000)
+         (sf 1))
 
     (when (= allow-resize? TRUE)
       (cond
-       ((< height min-length) (gimp-image-scale image (/ (* width min-length) height) min-length))
-       ((< width min-length) (gimp-image-scale image min-length (/ (* height min-length) width)))
-       ((> height max-length) (gimp-image-scale image (/ (* width max-length) height) max-length))
-       ((> width max-length) (gimp-image-scale image max-length (/ (* height max-length) width))))
-      (if (and allow-resize?
-               (< (max (* width 2) (* height 2)) max-length))
-          (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
+       ((<= height min-length)
+        (set! sf (/ width height))
+        (gimp-image-scale image (* min-length sf) min-length))
+       ((>= height max-length)
+        (set! sf (/ width height))
+        (gimp-image-scale image (* max-length sf) max-length))
+       ((<= width min-length)
+        (set! sf (/ height width))
+        (gimp-image-scale image min-length (* min-length sf)))
+       ((>= width max-length)
+        (set! sf (/ height width))
+        (gimp-image-scale image max-length (* max-length sf))))
+      (when (> sf 1.2)
+        (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
-    (if (> lightness 0)
-        (plug-in-softglow RUN-NONINTERACTIVE image background-layer 5 (* lightness 0.2) 0.5))
+    (when (> lightness 0)
+      (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
+                                                                                      0.0 0.0
+                                                                                      0.05 0.0
+                                                                                      0.2 (+ 0.2 (* lightness 0.2))
+                                                                                      0.5  (+ 0.5 (* lightness 0.05))
+                                                                                      1.0 1.0)))
+      (plug-in-softglow RUN-NONINTERACTIVE image background-layer 5 (* lightness 0.2) 0.5))
 
-    (let ((sketch-layer (car (gimp-layer-copy background-layer FALSE)))
-          (trace-layer (car (gimp-layer-copy background-layer FALSE))))
-      (when (> fine-detail 0)
+    (let* ((sketch-layer (car (gimp-layer-copy background-layer FALSE)))
+           (trace-layer (car (gimp-layer-copy background-layer FALSE))))
+      (when (> fine-detail 0.0001)
         (gimp-image-add-layer image trace-layer 0)
         (gimp-item-set-name trace-layer "trace")
         (gimp-image-set-active-layer image trace-layer)
@@ -69,6 +83,12 @@
                (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
           (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 20.0 1.0 1.0 detail-val))
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
+      
+        (let ((count 0))
+          (while (< count 2)
+                 (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
+                 (set! count (+ count 1))))
+      
         (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
 
       (gimp-image-set-active-layer image background-layer)
@@ -76,22 +96,18 @@
       
       (let ((count 0))
         (while (< count smoothness)
-               (plug-in-sel-gauss RUN-NONINTERACTIVE image background-layer (+ 2 smoothness) 80)
+               (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
+                                    (+ 1 smoothness (floor (/ (max width height) 1000)))
+                                    50)
                (set! count (+ count 1))))
       
       (gimp-image-set-active-layer image sketch-layer)
-      ;; (plug-in-gauss RUN-NONINTERACTIVE image sketch-layer 2 2 0) ; doesn't work
-      (plug-in-sel-gauss RUN-NONINTERACTIVE image sketch-layer 2 255)
+      (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 2 50)
       
       (gimp-image-set-active-layer image background-layer)
       (gimp-image-convert-rgb image)
       (when (> lightness 0)
-          (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 32) 0)
-          (gimp-drawable-levels background-layer
-                                HISTOGRAM-VALUE
-                                (* lightness 0.1)
-                                (- 1 (* lightness 0.2))
-                                TRUE 1 (* lightness 0.5) 1 TRUE))
+          (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
 
       (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
       (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
@@ -113,12 +129,12 @@
  "Ian Martins"                            ; author
  "2020, Ian Martins"                      ; copyright notice
  "December 11, 2020"                      ; date created
- ""                                       ; image type that the script works on
+ "RGB* GRAY*"                             ; image type that the script works on
  SF-IMAGE      "Image"      0             ; the image
  SF-DRAWABLE   "Drawable"   0             ; the layer
  SF-ADJUSTMENT "Colors"           '(20 3 64 1 10 0 0)
  SF-ADJUSTMENT "Smoothness"       '(2 0 5 1 1 0 1)
- SF-ADJUSTMENT "Lightness"        '(0.3 0 1 0.1 0.2 2 0)
+ SF-ADJUSTMENT "Lightness"        '(0.1 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Detail"           '(0.5 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Fine Detail"      '(0.5 0 1 0.1 0.2 2 0)
  SF-TOGGLE     "Allow Resize"     TRUE)

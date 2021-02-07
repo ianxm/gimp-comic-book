@@ -75,7 +75,7 @@
  "Ian Martins"                            ; author
  "2020, Ian Martins"                      ; copyright notice
  "December 7, 2020"                       ; date created
- ""                                       ; image type that the script works on
+ "RGB* GRAY*"                             ; image type that the script works on
  SF-IMAGE      "Image"      0             ; the image
  SF-DRAWABLE   "Drawable"   0             ; the layer
  SF-ADJUSTMENT "Colors"           '(20 3 64 1 10 0 0)
