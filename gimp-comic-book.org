@@ -113,7 +113,7 @@ GIMP doc]].
    "RGB* GRAY*"                             ; image type that the script works on
    SF-IMAGE      "Image"      0             ; the image
    SF-DRAWABLE   "Drawable"   0             ; the layer
-   SF-ADJUSTMENT "Colors"           '(20 3 64 1 10 0 0)
+   SF-ADJUSTMENT "Colors"           '(64 3 128 1 10 0 0)
    SF-ADJUSTMENT "Smoothness"       '(2 0 5 1 1 0 1)
    SF-ADJUSTMENT "Lightness"        '(0.1 0 1 0.1 0.2 2 0)
    SF-ADJUSTMENT "Detail"           '(0.5 0 1 0.1 0.2 2 0)
@@ -189,7 +189,7 @@ Finally we flush the GIMP display to update the image in the buffer.
         (when (> sf 1.2)
           (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
-      (when (> lightness 0)
+      (when (> lightness 0.0001)
         (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
                                                                                         0.0 0.0
                                                                                         0.05 0.0
@@ -261,13 +261,14 @@ sketch layer.  First we create and add the new layer on top of the
 background layer.
 
 Next we use the =photocopy= filter to convert the layer into lines
-where the image is darkest.  We use the =Detail= parameter to
-determine how sensitive photocopy should be.  This does a good job of
-marking edges, but also results in noise in large dark areas.  To
-reduce that effect we lighten the image with a =levels= operation
-before the =photocopy= call and darken it back after using a =sharpen=
-operation.  If =Detail= is turned down to zero we skip this step
-entirely.
+where the image is darkest.  This method was based on the
+[[https://www.gimphelp.org/effects_cartoon_quick.html][cartoon-quick]] filter.  We use the =Detail= parameter to determine how
+sensitive photocopy should be.  This does a good job of marking edges,
+but also results in noise in large dark areas.  To reduce that effect
+we lighten the image with a =levels= operation before the =photocopy=
+call and darken it back after using a =sharpen= operation, and run a
+=median-blur= on the layer while the image is indexed.  If =Detail= is
+turned down to zero we skip this step entirely.
 
 The =photocopy= filter produces an inverted greyscale image so there's
 no need to desaturate or invert the sketch layer.  We just set its
@@ -275,14 +276,14 @@ mode to =MULTIPLY= and are done here.
 
 #+name: sketch-layer
 #+begin_src scheme
-  (when (> detail 0)
+  (when (> detail 0.0001)
     (gimp-image-add-layer image sketch-layer 0)
     (gimp-item-set-name sketch-layer "sketch")
     (gimp-image-set-active-layer image sketch-layer)
     (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0 1 TRUE 1 0.3 1 TRUE)
     (let* ((detail-inv (- 1 detail))
            (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
-      (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 20.0 1.0 1.0 detail-val))
+      (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
     (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
 
     (let ((count 0))
@@ -327,11 +328,11 @@ by the =Lightness= parameter.
            (set! count (+ count 1))))
 
   (gimp-image-set-active-layer image sketch-layer)
-  (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 2 50)
+  (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
 
   (gimp-image-set-active-layer image background-layer)
   (gimp-image-convert-rgb image)
-  (when (> lightness 0)
+  (when (> lightness 0.0001)
       (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
 #+end_src
 
@@ -886,11 +887,12 @@ This simply merges the sketch layer onto the background layer.
   - [[https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html][script-fu tutorial]]
   - [[https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html][scheme reference]]
 * Literate Programming
-This is written as a [[https://en.wikipedia.org/wiki/Literate_programming][literate program]] using [[https://orgmode.org/][emacs org-mode]].  [[file:gimp-comic-book.org][The org
-file]] contains the code and documentation for the comic book filter.
-When it is saved, the source code is generated using
-=org-babel-tangle= and then copied to GIMP's scripts directory, and
-the readme is generated using =org-md-export-to-markdown=.
+This is written as a [[https://en.wikipedia.org/wiki/Literate_programming][literate program]] using [[https://orgmode.org/][emacs org-mode]].
+[[file:gimp-comic-book.org][The org file]] contains the code and
+documentation for the comic book filter.  When it is saved, the source
+code is generated using =org-babel-tangle= and then copied to GIMP's
+scripts directory, and the readme is generated using
+=org-md-export-to-markdown=.
 
 #+name: generate
 #+begin_src elisp :results none :var scripts-dir="~/.config/GIMP/2.10/scripts/"

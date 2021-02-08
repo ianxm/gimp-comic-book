@@ -43,7 +43,7 @@
       (when (> sf 1.2)
         (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
-    (when (> lightness 0)
+    (when (> lightness 0.0001)
       (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
                                                                                       0.0 0.0
                                                                                       0.05 0.0
@@ -74,14 +74,14 @@
         (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
       
 
-      (when (> detail 0)
+      (when (> detail 0.0001)
         (gimp-image-add-layer image sketch-layer 0)
         (gimp-item-set-name sketch-layer "sketch")
         (gimp-image-set-active-layer image sketch-layer)
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0 1 TRUE 1 0.3 1 TRUE)
         (let* ((detail-inv (- 1 detail))
                (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
-          (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 20.0 1.0 1.0 detail-val))
+          (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
       
         (let ((count 0))
@@ -102,11 +102,11 @@
                (set! count (+ count 1))))
       
       (gimp-image-set-active-layer image sketch-layer)
-      (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 2 50)
+      (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
       
       (gimp-image-set-active-layer image background-layer)
       (gimp-image-convert-rgb image)
-      (when (> lightness 0)
+      (when (> lightness 0.0001)
           (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
 
       (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
@@ -132,7 +132,7 @@
  "RGB* GRAY*"                             ; image type that the script works on
  SF-IMAGE      "Image"      0             ; the image
  SF-DRAWABLE   "Drawable"   0             ; the layer
- SF-ADJUSTMENT "Colors"           '(20 3 64 1 10 0 0)
+ SF-ADJUSTMENT "Colors"           '(64 3 128 1 10 0 0)
  SF-ADJUSTMENT "Smoothness"       '(2 0 5 1 1 0 1)
  SF-ADJUSTMENT "Lightness"        '(0.1 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Detail"           '(0.5 0 1 0.1 0.2 2 0)

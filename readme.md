@@ -1,29 +1,29 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org911b98f)
-    1.  [Overview](#org7e862ad)
-    2.  [Example](#orgad7a84f)
-    3.  [Comic Book](#orgc7afe37)
-        1.  [General Idea](#org2b83c4d)
-        2.  [Steps](#orgb743114)
-        3.  [Script](#org4985255)
-    4.  [Previous Attemps](#org52bf6a4)
-        1.  [Sketch A](#orgdadecfa)
-        2.  [Sketch B](#org9392455)
-        3.  [Comic Book A](#org3d02ce3)
-        4.  [Comic Book B](#org04e3353)
-    5.  [References](#org774f5f4)
-2.  [Literate Programming](#org6d890df)
+1.  [Comic Book Filter](#orga245248)
+    1.  [Overview](#org9bde0e0)
+    2.  [Example](#orgd649e3b)
+    3.  [Comic Book](#org8052e51)
+        1.  [General Idea](#org24ce7d1)
+        2.  [Steps](#orgac47014)
+        3.  [Script](#org7093991)
+    4.  [Previous Attemps](#orgcb34681)
+        1.  [Sketch A](#org2c1f679)
+        2.  [Sketch B](#org43151d7)
+        3.  [Comic Book A](#org2f3cd31)
+        4.  [Comic Book B](#orgddebdf6)
+    5.  [References](#org969b799)
+2.  [Literate Programming](#org0f86aa5)
 
 
 
-<a id="org911b98f"></a>
+<a id="orga245248"></a>
 
 # Comic Book Filter
 
 
-<a id="org7e862ad"></a>
+<a id="org9bde0e0"></a>
 
 ## Overview
 
@@ -32,7 +32,7 @@ frame from a comic book.  This is similar to the many cartoon filters
 out there.
 
 
-<a id="orgad7a84f"></a>
+<a id="orgd649e3b"></a>
 
 ## Example
 
@@ -53,12 +53,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background.jpg)
 
 
-<a id="orgc7afe37"></a>
+<a id="org8052e51"></a>
 
 ## Comic Book
 
 
-<a id="org2b83c4d"></a>
+<a id="org24ce7d1"></a>
 
 ### General Idea
 
@@ -73,7 +73,7 @@ the image and brighten the colors.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orgb743114"></a>
+<a id="orgac47014"></a>
 
 ### Steps
 
@@ -101,7 +101,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="org4985255"></a>
+<a id="org7093991"></a>
 
 ### Script
 
@@ -154,7 +154,7 @@ into a single script for GIMP.
          "RGB* GRAY*"                             ; image type that the script works on
          SF-IMAGE      "Image"      0             ; the image
          SF-DRAWABLE   "Drawable"   0             ; the layer
-         SF-ADJUSTMENT "Colors"           '(20 3 64 1 10 0 0)
+         SF-ADJUSTMENT "Colors"           '(64 3 128 1 10 0 0)
          SF-ADJUSTMENT "Smoothness"       '(2 0 5 1 1 0 1)
          SF-ADJUSTMENT "Lightness"        '(0.1 0 1 0.1 0.2 2 0)
          SF-ADJUSTMENT "Detail"           '(0.5 0 1 0.1 0.2 2 0)
@@ -228,7 +228,7 @@ into a single script for GIMP.
               (when (> sf 1.2)
                 (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
         
-            (when (> lightness 0)
+            (when (> lightness 0.0001)
               (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
                                                                                               0.0 0.0
                                                                                               0.05 0.0
@@ -295,26 +295,27 @@ into a single script for GIMP.
     background layer.
     
     Next we use the `photocopy` filter to convert the layer into lines
-    where the image is darkest.  We use the `Detail` parameter to
-    determine how sensitive photocopy should be.  This does a good job of
-    marking edges, but also results in noise in large dark areas.  To
-    reduce that effect we lighten the image with a `levels` operation
-    before the `photocopy` call and darken it back after using a `sharpen`
-    operation.  If `Detail` is turned down to zero we skip this step
-    entirely.
+    where the image is darkest.  This method was based on the
+    [cartoon-quick](https://www.gimphelp.org/effects_cartoon_quick.html) filter.  We use the `Detail` parameter to determine how
+    sensitive photocopy should be.  This does a good job of marking edges,
+    but also results in noise in large dark areas.  To reduce that effect
+    we lighten the image with a `levels` operation before the `photocopy`
+    call and darken it back after using a `sharpen` operation, and run a
+    `median-blur` on the layer while the image is indexed.  If `Detail` is
+    turned down to zero we skip this step entirely.
     
     The `photocopy` filter produces an inverted greyscale image so there's
     no need to desaturate or invert the sketch layer.  We just set its
     mode to `MULTIPLY` and are done here.
     
-        (when (> detail 0)
+        (when (> detail 0.0001)
           (gimp-image-add-layer image sketch-layer 0)
           (gimp-item-set-name sketch-layer "sketch")
           (gimp-image-set-active-layer image sketch-layer)
           (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0 1 TRUE 1 0.3 1 TRUE)
           (let* ((detail-inv (- 1 detail))
                  (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
-            (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 20.0 1.0 1.0 detail-val))
+            (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
           (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
         
           (let ((count 0))
@@ -356,11 +357,11 @@ into a single script for GIMP.
                  (set! count (+ count 1))))
         
         (gimp-image-set-active-layer image sketch-layer)
-        (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 2 50)
+        (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
         
         (gimp-image-set-active-layer image background-layer)
         (gimp-image-convert-rgb image)
-        (when (> lightness 0)
+        (when (> lightness 0.0001)
             (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
     
     When we indexed the colors the overlays may have been lightened, but
@@ -373,7 +374,7 @@ into a single script for GIMP.
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
 
-<a id="org52bf6a4"></a>
+<a id="orgcb34681"></a>
 
 ## Previous Attemps
 
@@ -381,7 +382,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgdadecfa"></a>
+<a id="org2c1f679"></a>
 
 ### Sketch A
 
@@ -411,7 +412,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org9392455"></a>
+<a id="org43151d7"></a>
 
 ### Sketch B
 
@@ -456,7 +457,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org3d02ce3"></a>
+<a id="org2f3cd31"></a>
 
 ### Comic Book A
 
@@ -502,7 +503,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org04e3353"></a>
+<a id="orgddebdf6"></a>
 
 ### Comic Book B
 
@@ -535,7 +536,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org774f5f4"></a>
+<a id="org969b799"></a>
 
 ## References
 
@@ -543,15 +544,16 @@ This is an example:
 -   [scheme reference](https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html)
 
 
-<a id="org6d890df"></a>
+<a id="org0f86aa5"></a>
 
 # Literate Programming
 
-This is written as a [literate program](https://en.wikipedia.org/wiki/Literate_programming) using [emacs org-mode](https://orgmode.org/).  [The org
-file](gimp-comic-book.md) contains the code and documentation for the comic book filter.
-When it is saved, the source code is generated using
-`org-babel-tangle` and then copied to GIMP's scripts directory, and
-the readme is generated using `org-md-export-to-markdown`.
+This is written as a [literate program](https://en.wikipedia.org/wiki/Literate_programming) using [emacs org-mode](https://orgmode.org/).
+[The org file](gimp-comic-book.md) contains the code and
+documentation for the comic book filter.  When it is saved, the source
+code is generated using `org-babel-tangle` and then copied to GIMP's
+scripts directory, and the readme is generated using
+`org-md-export-to-markdown`.
 
     (let ((scripts (org-babel-tangle)))
       (dolist (script scripts)
