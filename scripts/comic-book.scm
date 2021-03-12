@@ -59,17 +59,21 @@
         (gimp-item-set-name trace-layer "trace")
         (gimp-image-set-active-layer image trace-layer)
       
-        (plug-in-edge RUN-NONINTERACTIVE image trace-layer 1 2 0)
+        (gimp-drawable-curves-spline trace-layer HISTOGRAM-VALUE 6 (list->vector (list
+                                                                                  0.0 0.0
+                                                                                  0.5 0.875
+                                                                                  1.0 1.0)))
         (gimp-drawable-desaturate trace-layer DESATURATE-LUMINANCE)
+        (plug-in-edge RUN-NONINTERACTIVE image trace-layer 1 2 0)
       
         (let* ((detail-inv (- 1 fine-detail))
                (detail-low (* detail-inv 0.6))   ; range from 0.6 (lowest) to 0 (highest)
                (detail-high (+ detail-low 0.3))) ; range from 0.9 (lowest) to 0.5 (highest)
-               (gimp-drawable-levels trace-layer
-                                     HISTOGRAM-VALUE
-                                     detail-low
-                                     detail-high
-                                     TRUE 1 0 1 TRUE))
+          (gimp-drawable-levels trace-layer
+                                HISTOGRAM-VALUE
+                                detail-low
+                                detail-high
+                                TRUE 1 0 1 TRUE))
         (gimp-drawable-invert trace-layer TRUE)
         (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
       
@@ -78,7 +82,12 @@
         (gimp-image-add-layer image sketch-layer 0)
         (gimp-item-set-name sketch-layer "sketch")
         (gimp-image-set-active-layer image sketch-layer)
-        (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0 1 TRUE 1 0.3 1 TRUE)
+        (gimp-drawable-curves-spline sketch-layer HISTOGRAM-VALUE 10 (list->vector (list
+                                                                                    0.0  0.25
+                                                                                    0.25 0.375
+                                                                                    0.5  0.625
+                                                                                    0.75 0.875
+                                                                                    1.0  1.0)))
         (let* ((detail-inv (- 1 detail))
                (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
           (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
@@ -92,12 +101,13 @@
         (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
 
       (gimp-image-set-active-layer image background-layer)
-      (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE colors FALSE TRUE "")
+      ;;(gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE colors FALSE TRUE "")
+      (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-WEB colors FALSE TRUE "")
       
       (let ((count 0))
         (while (< count smoothness)
                (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                                    (+ 1 smoothness (floor (/ (max width height) 1000)))
+                                    (+ 1 smoothness (floor (/ (max width height) 1500)))
                                     50)
                (set! count (+ count 1))))
       
