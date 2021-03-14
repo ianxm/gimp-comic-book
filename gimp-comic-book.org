@@ -898,6 +898,7 @@ This simply merges the sketch layer onto the background layer.
 ** References
   - [[https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html][script-fu tutorial]]
   - [[https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html][scheme reference]]
+  - [[https://gitlab.gnome.org/GNOME/gimp/-/tree/master/plug-ins/script-fu/tinyscheme][scheme implementation]]
 * Literate Programming
 This is written as a [[https://en.wikipedia.org/wiki/Literate_programming][literate program]] using [[https://orgmode.org/][emacs org-mode]].
 [[file:gimp-comic-book.org][The org file]] contains the code and

@@ -1,29 +1,29 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#orgd2e9c9b)
-    1.  [Overview](#org3ba1d78)
-    2.  [Example](#orgd32f5a3)
-    3.  [Comic Book](#org8b0739c)
-        1.  [General Idea](#org00a9690)
-        2.  [Steps](#org49be279)
-        3.  [Script](#org70d267d)
-    4.  [Previous Attemps](#org5c7d720)
-        1.  [Sketch A](#org3142424)
-        2.  [Sketch B](#orgc821606)
-        3.  [Comic Book A](#orga339dcc)
-        4.  [Comic Book B](#org9d65b2e)
-    5.  [References](#orgf467580)
-2.  [Literate Programming](#org65a128e)
+1.  [Comic Book Filter](#org02fcac3)
+    1.  [Overview](#org264f151)
+    2.  [Example](#orga06dfa3)
+    3.  [Comic Book](#orga6692a4)
+        1.  [General Idea](#orgf8c0456)
+        2.  [Steps](#org17eeda4)
+        3.  [Script](#org7d176ad)
+    4.  [Previous Attemps](#orgbff6c90)
+        1.  [Sketch A](#org0b8c108)
+        2.  [Sketch B](#org8ceeb3d)
+        3.  [Comic Book A](#orgc9c4be7)
+        4.  [Comic Book B](#org391057f)
+    5.  [References](#org3419916)
+2.  [Literate Programming](#orgd599cd5)
 
 
 
-<a id="orgd2e9c9b"></a>
+<a id="org02fcac3"></a>
 
 # Comic Book Filter
 
 
-<a id="org3ba1d78"></a>
+<a id="org264f151"></a>
 
 ## Overview
 
@@ -32,7 +32,7 @@ frame from a comic book.  This is similar to the many cartoon filters
 out there.
 
 
-<a id="orgd32f5a3"></a>
+<a id="orga06dfa3"></a>
 
 ## Example
 
@@ -53,12 +53,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background.jpg)
 
 
-<a id="org8b0739c"></a>
+<a id="orga6692a4"></a>
 
 ## Comic Book
 
 
-<a id="org00a9690"></a>
+<a id="orgf8c0456"></a>
 
 ### General Idea
 
@@ -73,7 +73,7 @@ the image and brighten the colors.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org49be279"></a>
+<a id="org17eeda4"></a>
 
 ### Steps
 
@@ -101,7 +101,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="org70d267d"></a>
+<a id="org7d176ad"></a>
 
 ### Script
 
@@ -300,7 +300,7 @@ into a single script for GIMP.
     sketch layer.  First we create and add the new layer on top of the
     background layer.
     
-    Next we use the the `photocopy` filter to convert the layer into lines
+    Next we use the `photocopy` filter to convert the layer into lines
     where the image is darkest.  This method was based on the
     [cartoon-quick](https://www.gimphelp.org/effects_cartoon_quick.html) filter.  We use the `Detail` parameter to determine how
     sensitive photocopy should be.  This does a good job of marking edges,
@@ -359,8 +359,7 @@ into a single script for GIMP.
     by the `Lightness` parameter.
     
         (gimp-image-set-active-layer image background-layer)
-        ;;(gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE colors FALSE TRUE "")
-        (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-WEB colors FALSE TRUE "")
+        (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE colors FALSE TRUE "")
         
         (let ((count 0))
           (while (< count smoothness)
@@ -387,7 +386,7 @@ into a single script for GIMP.
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
 
-<a id="org5c7d720"></a>
+<a id="orgbff6c90"></a>
 
 ## Previous Attemps
 
@@ -395,7 +394,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org3142424"></a>
+<a id="org0b8c108"></a>
 
 ### Sketch A
 
@@ -425,7 +424,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="orgc821606"></a>
+<a id="org8ceeb3d"></a>
 
 ### Sketch B
 
@@ -470,7 +469,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orga339dcc"></a>
+<a id="orgc9c4be7"></a>
 
 ### Comic Book A
 
@@ -516,7 +515,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org9d65b2e"></a>
+<a id="org391057f"></a>
 
 ### Comic Book B
 
@@ -549,15 +548,16 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgf467580"></a>
+<a id="org3419916"></a>
 
 ## References
 
 -   [script-fu tutorial](https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html)
 -   [scheme reference](https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html)
+-   [scheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/tree/master/plug-ins/script-fu/tinyscheme)
 
 
-<a id="org65a128e"></a>
+<a id="orgd599cd5"></a>
 
 # Literate Programming
 

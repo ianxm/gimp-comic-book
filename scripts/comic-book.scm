@@ -101,8 +101,7 @@
         (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
 
       (gimp-image-set-active-layer image background-layer)
-      ;;(gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE colors FALSE TRUE "")
-      (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-WEB colors FALSE TRUE "")
+      (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE colors FALSE TRUE "")
       
       (let ((count 0))
         (while (< count smoothness)
