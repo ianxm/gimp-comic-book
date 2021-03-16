@@ -16,15 +16,17 @@
 ;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define (script-fu-comic-book image background-layer
-                              colors smoothness lightness
-                              detail fine-detail allow-resize?)
-  (gimp-image-undo-group-start image)
+                              num-face-colors num-background-colors smoothness
+                              lightness detail fine-detail allow-resize?)
+  ;; (gimp-image-undo-group-start image)
 
   (let* ((width (car (gimp-image-width image)))
          (height (car (gimp-image-height image)))
          (min-length 1200)
          (max-length 4000)
-         (sf 1))
+         (sf 1)
+         (selection -1))
+
 
     (when (= allow-resize? TRUE)
       (cond
@@ -42,6 +44,12 @@
         (gimp-image-scale image max-length (* max-length sf))))
       (when (> sf 1.2)
         (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
+
+    (if (eqv? (car (gimp-selection-is-empty image)) TRUE)
+        (set! selection -1)
+        (begin 
+          (set! selection (car (gimp-selection-save image)))
+          (gimp-selection-none image)))
 
     (when (> lightness 0.0001)
       (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
@@ -101,7 +109,67 @@
         (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
 
       (gimp-image-set-active-layer image background-layer)
-      (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE colors FALSE TRUE "")
+      (if (= selection -1)
+          ;; no selection, just convert
+          (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
+      
+          ;; give selected pixels preferential treatment
+          (let* ((width (car (gimp-image-width image)))
+                 (height (car (gimp-image-height image)))
+                 (face-colors '())
+                 (background-colors '())
+                 (secondary-image 0)
+                 (secondary-layer 0))
+      
+            (set! secondary-image (car (gimp-image-new width height RGB)))
+            (set! secondary-layer (car (gimp-layer-new secondary-image width height RGB-IMAGE "secondary" 100 LAYER-MODE-NORMAL)))
+            (gimp-layer-add-alpha secondary-layer)
+            (gimp-image-insert-layer secondary-image secondary-layer 0 0)
+            ;; (gimp-display-new secondary-image)
+      
+            (gimp-image-select-item image CHANNEL-OP-ADD selection)
+            (gimp-edit-copy background-layer)
+            (gimp-selection-all secondary-image)
+            (gimp-edit-clear secondary-layer)
+            (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+              (gimp-floating-sel-anchor float))
+            (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-face-colors FALSE TRUE "")
+            (set! face-colors (gimp-image-get-colormap secondary-image))
+            (gimp-image-convert-rgb secondary-image)
+      
+            (gimp-selection-invert image)
+            (gimp-edit-copy background-layer)
+            (gimp-selection-all secondary-image)
+            (gimp-edit-clear secondary-layer)
+            (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+              (gimp-floating-sel-anchor float))
+            (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
+            (set! background-colors (gimp-image-get-colormap secondary-image))
+            (gimp-image-delete secondary-image)
+      
+            (gimp-selection-none image)
+            (let ((palette-name (car (gimp-palette-new "indexed")))
+                  (index 0))
+              (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) '(0 0 0))
+              (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) '(255 255 255))
+              (while (< index num-face-colors)
+                     (gimp-palette-add-entry palette-name
+                                             (string-append "f" (number->string index))
+                                             (list (aref (cadr face-colors) (+ 0 (* index 3)))
+                                                   (aref (cadr face-colors) (+ 1 (* index 3)))
+                                                   (aref (cadr face-colors) (+ 2 (* index 3)))))
+                     (set! index (+ index 1)))
+              (set! index 0)
+              (while (< index num-background-colors)
+                     (gimp-palette-add-entry palette-name
+                                             (string-append "b" (number->string index))
+                                             (list (aref (cadr background-colors) (+ 0 (* index 3)))
+                                                   (aref (cadr background-colors) (+ 1 (* index 3)))
+                                                   (aref (cadr background-colors) (+ 2 (* index 3)))))
+                     (set! index (+ index 1)))
+              (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))
+            )
+          )
       
       (let ((count 0))
         (while (< count smoothness)
@@ -127,7 +195,7 @@
              (< (max width height) min-length))
         (gimp-image-scale image width height)))
 
-  (gimp-image-undo-group-end image)
+  ;; (gimp-image-undo-group-end image)
   (gimp-displays-flush))
 
 
@@ -141,10 +209,11 @@
  "RGB* GRAY*"                             ; image type that the script works on
  SF-IMAGE      "Image"      0             ; the image
  SF-DRAWABLE   "Drawable"   0             ; the layer
- SF-ADJUSTMENT "Colors"           '(64 3 128 1 10 0 0)
- SF-ADJUSTMENT "Smoothness"       '(2 0 5 1 1 0 1)
- SF-ADJUSTMENT "Lightness"        '(0.1 0 1 0.1 0.2 2 0)
- SF-ADJUSTMENT "Detail"           '(0.5 0 1 0.1 0.2 2 0)
- SF-ADJUSTMENT "Fine Detail"      '(0.5 0 1 0.1 0.2 2 0)
- SF-TOGGLE     "Allow Resize"     TRUE)
+ SF-ADJUSTMENT "Face Colors"          '(5 2 12 1 10 0 0)
+ SF-ADJUSTMENT "Background Colors"    '(24 3 64 1 10 0 0)
+ SF-ADJUSTMENT "Smoothness"           '(2 0 5 1 1 0 1)
+ SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
+ SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
+ SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0)
+ SF-TOGGLE     "Allow Resize"         TRUE)
 (script-fu-menu-register "script-fu-comic-book" "<Image>/Filters/Artistic")

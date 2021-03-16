@@ -1,29 +1,29 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org02fcac3)
-    1.  [Overview](#org264f151)
-    2.  [Example](#orga06dfa3)
-    3.  [Comic Book](#orga6692a4)
-        1.  [General Idea](#orgf8c0456)
-        2.  [Steps](#org17eeda4)
-        3.  [Script](#org7d176ad)
-    4.  [Previous Attemps](#orgbff6c90)
-        1.  [Sketch A](#org0b8c108)
-        2.  [Sketch B](#org8ceeb3d)
-        3.  [Comic Book A](#orgc9c4be7)
-        4.  [Comic Book B](#org391057f)
-    5.  [References](#org3419916)
-2.  [Literate Programming](#orgd599cd5)
+1.  [Comic Book Filter](#orgfaad9f4)
+    1.  [Overview](#org03ec5d7)
+    2.  [Example](#org723d442)
+    3.  [Comic Book](#org727e38e)
+        1.  [General Idea](#org690030d)
+        2.  [Steps](#orgb431e36)
+        3.  [Script](#orgdf633ff)
+    4.  [Previous Attemps](#orgbc33454)
+        1.  [Sketch A](#orgee523c0)
+        2.  [Sketch B](#orgb65a3f8)
+        3.  [Comic Book A](#org61bcb10)
+        4.  [Comic Book B](#org669d47a)
+    5.  [References](#orgf7e652f)
+2.  [Literate Programming](#orgce1d7a1)
 
 
 
-<a id="org02fcac3"></a>
+<a id="orgfaad9f4"></a>
 
 # Comic Book Filter
 
 
-<a id="org264f151"></a>
+<a id="org03ec5d7"></a>
 
 ## Overview
 
@@ -31,8 +31,15 @@ This is a GIMP filter to convert an image so that it looks like a
 frame from a comic book.  This is similar to the many cartoon filters
 out there.
 
+WARNING: This filter won't work on a standard build of GIMP.  This
+filter uses the `median blur` filter, which is not in the PDB, so it
+is not available to scripts in the current GIMP build.  I submitted a
+[patch](https://gitlab.gnome.org/GNOME/gimp/-/merge_requests/405) to the GIMP maintainers to include it.  To run this yourself
+you'll need to wait for that patch to be accepted or patch and build
+GIMP yourself which, unfortunately, is harder than it sounds.
 
-<a id="orga06dfa3"></a>
+
+<a id="org723d442"></a>
 
 ## Example
 
@@ -53,27 +60,31 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background.jpg)
 
 
-<a id="orga6692a4"></a>
+<a id="org727e38e"></a>
 
 ## Comic Book
 
 
-<a id="orgf8c0456"></a>
+<a id="org690030d"></a>
 
 ### General Idea
 
-There are two main parts to the comic book image: lines that that
+There are two main parts to the comic book image: lines that
 outline shapes and emphasize edges, and colors that fill in the
 shapes.
 
-We run two filters to find the lines and overlay them over the
-background.  For the background layer we index the colors, then smooth
+We run two filters to find the lines to overlay over the background
+colors.  For the background layer we flatten the colors, then smooth
 the image and brighten the colors.
+
+For best results, use the oval select tool to select faces before
+running the filter.  This will ensure optimal colors are chosen for
+skin tones.
 
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org17eeda4"></a>
+<a id="orgb431e36"></a>
 
 ### Steps
 
@@ -101,7 +112,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="org7d176ad"></a>
+<a id="orgdf633ff"></a>
 
 ### Script
 
@@ -132,8 +143,12 @@ into a single script for GIMP.
 
     This registers the script with GIMP and configures the dialog with the
     parameters that will be passed to the filter.  Everything is
-    boilerblate except five of the parameters, which I'll go over now.
+    boilerblate except seven of the parameters, which I'll go over now.
     
+    -   **Face Colors:** The number of colors to choose for people's faces
+        (only used if there is a selection)
+    -   **Background Colors:** The number of colors to choose for the rest of
+        the image
     -   **Smoothness:** a higher value results in more background blurring,
         which looks like smoother curves where indexed colors meet
     -   **Lightness:** a higher value results in lighter colors
@@ -154,12 +169,13 @@ into a single script for GIMP.
          "RGB* GRAY*"                             ; image type that the script works on
          SF-IMAGE      "Image"      0             ; the image
          SF-DRAWABLE   "Drawable"   0             ; the layer
-         SF-ADJUSTMENT "Colors"           '(64 3 128 1 10 0 0)
-         SF-ADJUSTMENT "Smoothness"       '(2 0 5 1 1 0 1)
-         SF-ADJUSTMENT "Lightness"        '(0.1 0 1 0.1 0.2 2 0)
-         SF-ADJUSTMENT "Detail"           '(0.5 0 1 0.1 0.2 2 0)
-         SF-ADJUSTMENT "Fine Detail"      '(0.5 0 1 0.1 0.2 2 0)
-         SF-TOGGLE     "Allow Resize"     TRUE)
+         SF-ADJUSTMENT "Face Colors"          '(5 2 12 1 10 0 0)
+         SF-ADJUSTMENT "Background Colors"    '(24 3 64 1 10 0 0)
+         SF-ADJUSTMENT "Smoothness"           '(2 0 5 1 1 0 1)
+         SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
+         SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
+         SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0)
+         SF-TOGGLE     "Allow Resize"         TRUE)
         (script-fu-menu-register "script-fu-comic-book" "<Image>/Filters/Artistic")
 
 3.  convert
@@ -181,6 +197,9 @@ into a single script for GIMP.
     the smaller image may be sufficient and we don't want to resize it
     unnecessarily.
     
+    If there is a selection, we save it to a channel and dismiss it.  It
+    is used later when we index the background colors.
+    
     The next thing we do to the image is to lighten it.  We apply `curves`
     and then a `softglow` filter.  We skip both of these if the
     `lightness` parameter was set to zero.  The `curves` operation
@@ -201,15 +220,17 @@ into a single script for GIMP.
     Finally we flush the GIMP display to update the image in the buffer.
     
         (define (script-fu-comic-book image background-layer
-                                      colors smoothness lightness
-                                      detail fine-detail allow-resize?)
-          (gimp-image-undo-group-start image)
+                                      num-face-colors num-background-colors smoothness
+                                      lightness detail fine-detail allow-resize?)
+          ;; (gimp-image-undo-group-start image)
         
           (let* ((width (car (gimp-image-width image)))
                  (height (car (gimp-image-height image)))
                  (min-length 1200)
                  (max-length 4000)
-                 (sf 1))
+                 (sf 1)
+                 (selection -1))
+        
         
             (when (= allow-resize? TRUE)
               (cond
@@ -227,6 +248,12 @@ into a single script for GIMP.
                 (gimp-image-scale image max-length (* max-length sf))))
               (when (> sf 1.2)
                 (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
+        
+            (if (eqv? (car (gimp-selection-is-empty image)) TRUE)
+                (set! selection -1)
+                (begin 
+                  (set! selection (car (gimp-selection-save image)))
+                  (gimp-selection-none image)))
         
             (when (> lightness 0.0001)
               (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
@@ -253,7 +280,7 @@ into a single script for GIMP.
                      (< (max width height) min-length))
                 (gimp-image-scale image width height)))
         
-          (gimp-image-undo-group-end image)
+          ;; (gimp-image-undo-group-end image)
           (gimp-displays-flush))
     
     Here we create a "trace layer" that traces over lines.  It adds thin
@@ -340,8 +367,9 @@ into a single script for GIMP.
     Here we work on the background layer.
     
     First we convert it to use indexed colors.  This reduces the number of
-    colors and results in areas of solid color which look more like
-    an illustration than the continuous gradients of a photo.
+    colors and results in areas of solid color which look more like an
+    illustration than the continuous gradients of a photo.  We'll go into
+    details on how we index the colors below.
     
     Next we run a `median-blur` filter to smooth the image.  The strength
     and number of smoothing iterations is controlled by the `Smoothness`
@@ -359,7 +387,7 @@ into a single script for GIMP.
     by the `Lightness` parameter.
     
         (gimp-image-set-active-layer image background-layer)
-        (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE colors FALSE TRUE "")
+        <<comic-index>>
         
         (let ((count 0))
           (while (< count smoothness)
@@ -385,8 +413,96 @@ into a single script for GIMP.
         (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
+4.  index
 
-<a id="orgbff6c90"></a>
+    This section handles the indexing of the background layer.  Indexing
+    an image to flatten the colors works well in some cases, but when
+    there are people if faces are small relative to the background often
+    the algorithm that chooses colors will pick colors that work well for
+    the background but may not be optimal for faces.  The most important
+    thing about an image is if the people in the image are recognizeable,
+    and using sub-optimal colors for skin tones sometimes results in
+    people that don't look right.  One way around this is to keep
+    increasing the number of colors but this reduces the flattening of the
+    colors, so the end result is less cartoon-like.
+    
+    To get around this we index faces separately.  First we index only the
+    selected part of the image (allowing up to `Face Colors` colors) and
+    save the chosen colors.  Then we index the rest of the image (allowing
+    up to `Background Colors` colors) and save those.  Finally we index
+    the whole image using all of the colors collected from the previous
+    two indexing operations.
+    
+    Indexing an image is destructive so when we index a portion of the
+    image just to find out which colors the indexer will choose, we do it
+    in a secondary image.  We also manually add black and white to the
+    list of colors in case they weren't chosen in either indexing
+    operation.
+    
+        (if (= selection -1)
+            ;; no selection, just convert
+            (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
+        
+            ;; give selected pixels preferential treatment
+            (let* ((width (car (gimp-image-width image)))
+                   (height (car (gimp-image-height image)))
+                   (face-colors '())
+                   (background-colors '())
+                   (secondary-image 0)
+                   (secondary-layer 0))
+        
+              (set! secondary-image (car (gimp-image-new width height RGB)))
+              (set! secondary-layer (car (gimp-layer-new secondary-image width height RGB-IMAGE "secondary" 100 LAYER-MODE-NORMAL)))
+              (gimp-layer-add-alpha secondary-layer)
+              (gimp-image-insert-layer secondary-image secondary-layer 0 0)
+              ;; (gimp-display-new secondary-image)
+        
+              (gimp-image-select-item image CHANNEL-OP-ADD selection)
+              (gimp-edit-copy background-layer)
+              (gimp-selection-all secondary-image)
+              (gimp-edit-clear secondary-layer)
+              (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+                (gimp-floating-sel-anchor float))
+              (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-face-colors FALSE TRUE "")
+              (set! face-colors (gimp-image-get-colormap secondary-image))
+              (gimp-image-convert-rgb secondary-image)
+        
+              (gimp-selection-invert image)
+              (gimp-edit-copy background-layer)
+              (gimp-selection-all secondary-image)
+              (gimp-edit-clear secondary-layer)
+              (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+                (gimp-floating-sel-anchor float))
+              (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
+              (set! background-colors (gimp-image-get-colormap secondary-image))
+              (gimp-image-delete secondary-image)
+        
+              (gimp-selection-none image)
+              (let ((palette-name (car (gimp-palette-new "indexed")))
+                    (index 0))
+                (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) '(0 0 0))
+                (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) '(255 255 255))
+                (while (< index num-face-colors)
+                       (gimp-palette-add-entry palette-name
+                                               (string-append "f" (number->string index))
+                                               (list (aref (cadr face-colors) (+ 0 (* index 3)))
+                                                     (aref (cadr face-colors) (+ 1 (* index 3)))
+                                                     (aref (cadr face-colors) (+ 2 (* index 3)))))
+                       (set! index (+ index 1)))
+                (set! index 0)
+                (while (< index num-background-colors)
+                       (gimp-palette-add-entry palette-name
+                                               (string-append "b" (number->string index))
+                                               (list (aref (cadr background-colors) (+ 0 (* index 3)))
+                                                     (aref (cadr background-colors) (+ 1 (* index 3)))
+                                                     (aref (cadr background-colors) (+ 2 (* index 3)))))
+                       (set! index (+ index 1)))
+                (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))
+              )
+            )
+
+
+<a id="orgbc33454"></a>
 
 ## Previous Attemps
 
@@ -394,7 +510,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org0b8c108"></a>
+<a id="orgee523c0"></a>
 
 ### Sketch A
 
@@ -424,7 +540,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org8ceeb3d"></a>
+<a id="orgb65a3f8"></a>
 
 ### Sketch B
 
@@ -469,7 +585,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orgc9c4be7"></a>
+<a id="org61bcb10"></a>
 
 ### Comic Book A
 
@@ -515,7 +631,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org391057f"></a>
+<a id="org669d47a"></a>
 
 ### Comic Book B
 
@@ -548,7 +664,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org3419916"></a>
+<a id="orgf7e652f"></a>
 
 ## References
 
@@ -557,7 +673,7 @@ This is an example:
 -   [scheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/tree/master/plug-ins/script-fu/tinyscheme)
 
 
-<a id="orgd599cd5"></a>
+<a id="orgce1d7a1"></a>
 
 # Literate Programming
 
