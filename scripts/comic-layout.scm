@@ -1,4 +1,4 @@
-;; Comic book filter for GIMP.  Find documentation at https://github.com/ianxm/gimp-comic-book
+;; Comic book layout for GIMP.  Find documentation at https://github.com/ianxm/gimp-comic-book
 
 ; LICENSE
 ;
