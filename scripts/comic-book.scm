@@ -18,7 +18,7 @@
 (define (script-fu-comic-book image background-layer
                               num-face-colors num-background-colors smoothness
                               lightness detail fine-detail allow-resize?)
-  ;; (gimp-image-undo-group-start image)
+  (gimp-image-undo-group-start image)
 
   (let* ((width (car (gimp-image-width image)))
          (height (car (gimp-image-height image)))
@@ -195,7 +195,7 @@
              (< (max width height) min-length))
         (gimp-image-scale image width height)))
 
-  ;; (gimp-image-undo-group-end image)
+  (gimp-image-undo-group-end image)
   (gimp-displays-flush))
 
 

@@ -16,7 +16,7 @@
 ;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define (script-fu-comic-layout width height cols pattern)
-  ;; (gimp-image-undo-group-start image)
+  (gimp-image-undo-group-start image)
 
   (let* ((ret (file-glob pattern 1))
          (num-files (car ret))
@@ -59,7 +59,7 @@
              (set! count (+ count 1))
              (set! files (cdr files)))))
 
-    ;; (gimp-image-undo-group-end image)
+    (gimp-image-undo-group-end image)
     (gimp-displays-flush)))
 
 
@@ -74,6 +74,5 @@
  SF-VALUE "Frame Width"     "600"
  SF-VALUE "Frame Height"    "450"
  SF-ADJUSTMENT "Columns"    '(2 1 6 1 1 0 0)
- SF-STRING "Path Glob"      "/home/ian/pics/willspics/*_comic.jpg")
- ;; SF-STRING "Path Glob"      "/path/to/images*.jpg")
+ SF-STRING "Path Glob"      "/path/to/images*.jpg")
 (script-fu-menu-register "script-fu-comic-layout" "<Image>/Filters")

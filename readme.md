@@ -1,31 +1,31 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#orgfd06c83)
-    1.  [Overview](#org6a95fd3)
-    2.  [Example](#org9190b0e)
-    3.  [Filter](#org49eed22)
-        1.  [General Idea](#org7241dbc)
-        2.  [Steps](#org81595a9)
-        3.  [Script](#org72cf8a9)
-    4.  [Page Layout](#org0e187ef)
-        1.  [Script](#org4ceaed2)
-    5.  [Previous Attemps](#orgd785b8e)
-        1.  [Sketch A](#orgc0677ab)
-        2.  [Sketch B](#org3297fd5)
-        3.  [Comic Book A](#org4f39e41)
-        4.  [Comic Book B](#org3f804c4)
-    6.  [References](#orgee0126e)
-2.  [Literate Programming](#orgf597d9e)
+1.  [Comic Book Filter](#org39f7eea)
+    1.  [Overview](#org6892ccb)
+    2.  [Example](#org253059c)
+    3.  [Filter](#orgdbe9e69)
+        1.  [General Idea](#orgad355ce)
+        2.  [Steps](#orge04a4e6)
+        3.  [Script](#orgffe3b3d)
+    4.  [Page Layout](#org7828a88)
+        1.  [Script](#org3d97787)
+    5.  [Previous Attemps](#org57e4d75)
+        1.  [Sketch A](#orge8b0575)
+        2.  [Sketch B](#org38cb86b)
+        3.  [Comic Book A](#orge96b341)
+        4.  [Comic Book B](#orge6a2e16)
+    6.  [References](#orgc51e458)
+2.  [Literate Programming](#org745a8e6)
 
 
 
-<a id="orgfd06c83"></a>
+<a id="org39f7eea"></a>
 
 # Comic Book Filter
 
 
-<a id="org6a95fd3"></a>
+<a id="org6892ccb"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="org9190b0e"></a>
+<a id="org253059c"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org49eed22"></a>
+<a id="orgdbe9e69"></a>
 
 ## Filter
 
 
-<a id="org7241dbc"></a>
+<a id="orgad355ce"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org81595a9"></a>
+<a id="orge04a4e6"></a>
 
 ### Steps
 
@@ -114,7 +114,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="org72cf8a9"></a>
+<a id="orgffe3b3d"></a>
 
 ### Script
 
@@ -224,7 +224,7 @@ into a single script for GIMP.
         (define (script-fu-comic-book image background-layer
                                       num-face-colors num-background-colors smoothness
                                       lightness detail fine-detail allow-resize?)
-          ;; (gimp-image-undo-group-start image)
+          (gimp-image-undo-group-start image)
         
           (let* ((width (car (gimp-image-width image)))
                  (height (car (gimp-image-height image)))
@@ -282,7 +282,7 @@ into a single script for GIMP.
                      (< (max width height) min-length))
                 (gimp-image-scale image width height)))
         
-          ;; (gimp-image-undo-group-end image)
+          (gimp-image-undo-group-end image)
           (gimp-displays-flush))
     
     Here we create a "trace layer" that traces over lines.  It adds thin
@@ -504,16 +504,16 @@ into a single script for GIMP.
             )
 
 
-<a id="org0e187ef"></a>
+<a id="org7828a88"></a>
 
 ## Page Layout
 
-This script lays out several pictures on a page like frames in a comic
-book.  The dimensions of the frames and number of columns are
-configurable, but it creates all frames the same size.
+This is a separate script that lays out multiple pictures on a page
+like frames in a comic book.  The dimensions of the frames and number
+of columns are configurable, but it creates all frames the same size.
 
 
-<a id="org4ceaed2"></a>
+<a id="org3d97787"></a>
 
 ### Script
 
@@ -542,8 +542,7 @@ configurable, but it creates all frames the same size.
          SF-VALUE "Frame Width"     "600"
          SF-VALUE "Frame Height"    "450"
          SF-ADJUSTMENT "Columns"    '(2 1 6 1 1 0 0)
-         SF-STRING "Path Glob"      "/home/ian/pics/willspics/*_comic.jpg")
-         ;; SF-STRING "Path Glob"      "/path/to/images*.jpg")
+         SF-STRING "Path Glob"      "/path/to/images*.jpg")
         (script-fu-menu-register "script-fu-comic-layout" "<Image>/Filters")
 
 2.  run
@@ -560,7 +559,7 @@ configurable, but it creates all frames the same size.
     any faces.
     
         (define (script-fu-comic-layout width height cols pattern)
-          ;; (gimp-image-undo-group-start image)
+          (gimp-image-undo-group-start image)
         
           (let* ((ret (file-glob pattern 1))
                  (num-files (car ret))
@@ -603,11 +602,11 @@ configurable, but it creates all frames the same size.
                      (set! count (+ count 1))
                      (set! files (cdr files)))))
         
-            ;; (gimp-image-undo-group-end image)
+            (gimp-image-undo-group-end image)
             (gimp-displays-flush)))
 
 
-<a id="orgd785b8e"></a>
+<a id="org57e4d75"></a>
 
 ## Previous Attemps
 
@@ -615,7 +614,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgc0677ab"></a>
+<a id="orge8b0575"></a>
 
 ### Sketch A
 
@@ -645,7 +644,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org3297fd5"></a>
+<a id="org38cb86b"></a>
 
 ### Sketch B
 
@@ -690,7 +689,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org4f39e41"></a>
+<a id="orge96b341"></a>
 
 ### Comic Book A
 
@@ -736,7 +735,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org3f804c4"></a>
+<a id="orge6a2e16"></a>
 
 ### Comic Book B
 
@@ -769,7 +768,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgee0126e"></a>
+<a id="orgc51e458"></a>
 
 ## References
 
@@ -778,7 +777,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/tree/master/plug-ins/script-fu/tinyscheme)
 
 
-<a id="orgf597d9e"></a>
+<a id="org745a8e6"></a>
 
 # Literate Programming
 
