@@ -1,29 +1,31 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#orgfaad9f4)
-    1.  [Overview](#org03ec5d7)
-    2.  [Example](#org723d442)
-    3.  [Comic Book](#org727e38e)
-        1.  [General Idea](#org690030d)
-        2.  [Steps](#orgb431e36)
-        3.  [Script](#orgdf633ff)
-    4.  [Previous Attemps](#orgbc33454)
-        1.  [Sketch A](#orgee523c0)
-        2.  [Sketch B](#orgb65a3f8)
-        3.  [Comic Book A](#org61bcb10)
-        4.  [Comic Book B](#org669d47a)
-    5.  [References](#orgf7e652f)
-2.  [Literate Programming](#orgce1d7a1)
+1.  [Comic Book Filter](#org65ffaa6)
+    1.  [Overview](#org5178b80)
+    2.  [Example](#orgb127258)
+    3.  [Filter](#org74f79fa)
+        1.  [General Idea](#org7d43f45)
+        2.  [Steps](#org99484c5)
+        3.  [Script](#orgc775cfa)
+    4.  [Page Layout](#org0740673)
+        1.  [Script](#org8a0e2d9)
+    5.  [Previous Attemps](#org56ed55d)
+        1.  [Sketch A](#orgc138d4e)
+        2.  [Sketch B](#orgada0532)
+        3.  [Comic Book A](#orgb77f79d)
+        4.  [Comic Book B](#org22a47e7)
+    6.  [References](#orgc947bbb)
+2.  [Literate Programming](#orge02298d)
 
 
 
-<a id="orgfaad9f4"></a>
+<a id="org65ffaa6"></a>
 
 # Comic Book Filter
 
 
-<a id="org03ec5d7"></a>
+<a id="org5178b80"></a>
 
 ## Overview
 
@@ -39,33 +41,33 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="org723d442"></a>
+<a id="orgb127258"></a>
 
 ## Example
 
 This is an example photo run through the comic book filter.
 
 Here is the original:
-![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_orig.jpg)
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_orig_2.jpg)
 
 Here is the final result:
-![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic.jpg)
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic_2.jpg)
 
 These are the GIMP filter settings I used to convert this image:
-![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_dialog.jpg)
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_dialog_2.jpg)
 
 In case you're curious, here are the overlay and background layers
 that make up the final result:
-![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_overlays.jpg)
-![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background.jpg)
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_overlays_2.jpg)
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org727e38e"></a>
+<a id="org74f79fa"></a>
 
-## Comic Book
+## Filter
 
 
-<a id="org690030d"></a>
+<a id="org7d43f45"></a>
 
 ### General Idea
 
@@ -84,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orgb431e36"></a>
+<a id="org99484c5"></a>
 
 ### Steps
 
@@ -112,7 +114,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="orgdf633ff"></a>
+<a id="orgc775cfa"></a>
 
 ### Script
 
@@ -502,7 +504,240 @@ into a single script for GIMP.
             )
 
 
-<a id="orgbc33454"></a>
+<a id="org0740673"></a>
+
+## Page Layout
+
+This script lays out several pictures on a page like frames in a comic
+book.  The dimensions of the frames and number of columns are
+configurable, but it creates all frames the same size.
+
+
+<a id="org8a0e2d9"></a>
+
+### Script
+
+1.  register
+
+    This registers the script with GIMP and configures the dialog with the
+    parameters that will be passed to the filter.  Everything is
+    boilerblate except seven of the parameters, which I'll go over now.
+    
+    -   **Frame Width:** The width of each frame in pixels
+    -   **Frame Height:** The height of each frame in pixels
+    -   **Columns:** The number of columns of images on the page
+    -   **Path Glob:** Load all images found for this file pattern
+    
+    The meaning of the values we set is explained in [section 3.4.8 of the
+    GIMP doc](https://docs.gimp.org/2.8/en/gimp-using-script-fu-tutorial-first-script.html).
+    
+        (script-fu-register
+         "script-fu-comic-layout"                 ; func name
+         "Comic Book Layout"                      ; menu label
+         "Lay out images on a comic book page."   ; description
+         "Ian Martins"                            ; author
+         "2021, Ian Martins"                      ; copyright notice
+         "March 18, 2021"                         ; date created
+         ""                                       ; image type that the script works on
+         SF-VALUE "Frame Width"     "600"
+         SF-VALUE "Frame Height"    "450"
+         SF-ADJUSTMENT "Columns"    '(2 1 6 1 1 0 0)
+         SF-STRING "Path Glob"      "/home/ian/pics/willspics/*_comic.jpg")
+         ;; SF-STRING "Path Glob"      "/path/to/images*.jpg")
+        (script-fu-menu-register "script-fu-comic-layout" "<Image>/Filters")
+
+2.  run
+
+    This loads a bunch of images and lays them out like table cells on a
+    larger image, which it creates.  We crop each image to get it to the
+    aspect ratio of the frame on the page, then scale it to the desired
+    dimensions and move it into place.
+    
+    If we crop the sides of an image we remove the same amount from both
+    sides.  When we crop the top and bottom we take twice as much from the
+    bottom as the top.  The idea is that it's more likely there are faces
+    near the top of a picture than the bottom, and we don't want to clip
+    any faces.
+    
+        (define (script-fu-comic-layout width height cols pattern)
+          ;; (gimp-image-undo-group-start image)
+        
+          (let* ((ret (file-glob pattern 1))
+                 (num-files (car ret))
+                 (files (cadr ret))
+                 (outer-margin 50)
+                 (inner-margin 15)
+                 (page-width (+ (* width cols) (*  outer-margin 2) (* inner-margin (- cols 1))))
+                 (rows (ceiling (/ num-files cols)))
+                 (page-height (+ (* height rows) (*  outer-margin 2) (* inner-margin (- rows 1))))
+                 (page (car (gimp-image-new page-width page-height RGB)))
+                 (background (car (gimp-layer-new page page-width page-height RGB-IMAGE "background" 100 LAYER-MODE-NORMAL)))
+                 (frame-aspect-ratio (/ width height)))
+            (gimp-display-new page)
+            (gimp-image-insert-layer page background 0 0)
+            (gimp-drawable-fill background FILL-WHITE)
+        
+            (let ((count 0))
+              (while (not (null? files))
+                   (let* ((filename (car files))
+                          (layer (car (gimp-file-load-layer RUN-NONINTERACTIVE page filename)))
+                          (layer-width (car (gimp-drawable-width layer)))
+                          (layer-height (car (gimp-drawable-height layer)))
+                          (row (floor (/ count cols)))
+                          (col (modulo count cols))
+                          (image-aspect-ratio (/ (car (gimp-drawable-width layer)) (car (gimp-drawable-height layer))))
+                          (xoffset (+ outer-margin (* col (+ inner-margin width))))
+                          (yoffset (+ outer-margin (* row (+ inner-margin height)))))
+                     (gimp-image-insert-layer page layer 0 0)
+                     (if (> image-aspect-ratio frame-aspect-ratio)
+                         ;; clip sides
+                         (let* ((new-width (* layer-height frame-aspect-ratio))
+                                (diff (- layer-width new-width)))
+                           (gimp-layer-resize layer new-width layer-height (- (/ diff 2)) 0))
+                         ;; clip top and bottom
+                         (let* ((new-height (/ layer-width frame-aspect-ratio))
+                                (diff (- layer-height new-height)))
+                           (gimp-layer-resize layer layer-width new-height 0 (- (/ diff 3)))))
+                     (gimp-layer-scale layer width height FALSE)
+                     (gimp-layer-translate layer (- xoffset (car (gimp-drawable-offsets layer))) (- yoffset (cadr (gimp-drawable-offsets layer))))
+                     (set! count (+ count 1))
+                     (set! files (cdr files)))))
+        
+            ;; (gimp-image-undo-group-end image)
+            (gimp-displays-flush)))
+    
+    Here we create a "trace layer" that traces over lines.  It adds thin
+    lines wherever there are edges in the image.  The trace layer usually
+    picks up some details that the sketch layer misses.
+    
+    We duplicate the background and add the new layer to the top.  We
+    lighten the new layer with `curves` to wash out any glare or shiny
+    spots so they aren't picked up by the edge detection.  The main work
+    is done by the Sobel Edge Detection filter, which we run on the new
+    layer.  We desaturate to convert to greyscale since we don't want
+    color info.  Then we adjust levels in the trace layer to stengthen the
+    most significant lines and dim the noise.  We use the `Fine Detail`
+    parameter to control this adjustment.  If `Fine Detail` is turned down
+    to zero, we skip this step entirely.
+    
+    Finally we invert the trace layer and set its mode to `MULTIPLY` so
+    that the lines show up overlayed on the background.
+    
+        (when (> fine-detail 0.0001)
+          (gimp-image-add-layer image trace-layer 0)
+          (gimp-item-set-name trace-layer "trace")
+          (gimp-image-set-active-layer image trace-layer)
+        
+          (gimp-drawable-curves-spline trace-layer HISTOGRAM-VALUE 6 (list->vector (list
+                                                                                    0.0 0.0
+                                                                                    0.5 0.875
+                                                                                    1.0 1.0)))
+          (gimp-drawable-desaturate trace-layer DESATURATE-LUMINANCE)
+          (plug-in-edge RUN-NONINTERACTIVE image trace-layer 1 2 0)
+        
+          (let* ((detail-inv (- 1 fine-detail))
+                 (detail-low (* detail-inv 0.6))   ; range from 0.6 (lowest) to 0 (highest)
+                 (detail-high (+ detail-low 0.3))) ; range from 0.9 (lowest) to 0.5 (highest)
+            (gimp-drawable-levels trace-layer
+                                  HISTOGRAM-VALUE
+                                  detail-low
+                                  detail-high
+                                  TRUE 1 0 1 TRUE))
+          (gimp-drawable-invert trace-layer TRUE)
+          (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
+    
+    Here we create a layer that outlines shapes, which we will call the
+    sketch layer.  First we create and add the new layer on top of the
+    background layer.
+    
+    Next we use the `photocopy` filter to convert the layer into lines
+    where the image is darkest.  This method was based on the
+    [cartoon-quick](https://www.gimphelp.org/effects_cartoon_quick.html) filter.  We use the `Detail` parameter to determine how
+    sensitive photocopy should be.  This does a good job of marking edges,
+    but also results in noise in large dark areas.  To reduce that effect
+    we lighten the image with a `curves` operation before the `photocopy`
+    call and darken it back after using the `levels` and `sharpen`
+    operations.  We also run a `median-blur` on the layer while the image
+    is indexed to clear up some of the noise.  If `Detail` is turned down
+    to zero we skip this step entirely.
+    
+    The `photocopy` filter produces an inverted greyscale image so there's
+    no need to desaturate or invert the sketch layer.  We just set its
+    mode to `MULTIPLY` and are done here.
+    
+        (when (> detail 0.0001)
+          (gimp-image-add-layer image sketch-layer 0)
+          (gimp-item-set-name sketch-layer "sketch")
+          (gimp-image-set-active-layer image sketch-layer)
+          (gimp-drawable-curves-spline sketch-layer HISTOGRAM-VALUE 10 (list->vector (list
+                                                                                      0.0  0.25
+                                                                                      0.25 0.375
+                                                                                      0.5  0.625
+                                                                                      0.75 0.875
+                                                                                      1.0  1.0)))
+          (let* ((detail-inv (- 1 detail))
+                 (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
+            (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
+          (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
+        
+          (let ((count 0))
+            (while (< count 2)
+                   (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
+                   (set! count (+ count 1))))
+        
+          (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
+    
+    Here we work on the background layer.
+    
+    First we convert it to use indexed colors.  This reduces the number of
+    colors and results in areas of solid color which look more like an
+    illustration than the continuous gradients of a photo.  We'll go into
+    details on how we index the colors below.
+    
+    Next we run a `median-blur` filter to smooth the image.  The strength
+    and number of smoothing iterations is controlled by the `Smoothness`
+    parameter.  `median-blur` isn't available in GIMP's procedure browser
+    so I hacked my version to provide it.
+    
+    Then we blur the sketch layer to clean up the lines and reduce the
+    noise from the photocopy filter.  We do this here and not while we're
+    working on the sketch layer because we need to do it while the image
+    is indexed.
+    
+    For the last step here we give the colors a little boost and lighten
+    the image.  This isn't necessary but illustrations are often brighter
+    and more vivid than reality.  The amount of brightening is controlled
+    by the `Lightness` parameter.
+    
+        (gimp-image-set-active-layer image background-layer)
+        <<comic-index>>
+        
+        (let ((count 0))
+          (while (< count smoothness)
+                 (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
+                                      (+ 1 smoothness (floor (/ (max width height) 1500)))
+                                      50)
+                 (set! count (+ count 1))))
+        
+        (gimp-image-set-active-layer image sketch-layer)
+        (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
+        
+        (gimp-image-set-active-layer image background-layer)
+        (gimp-image-convert-rgb image)
+        (when (> lightness 0.0001)
+            (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
+    
+    When we indexed the colors the overlays may have been lightened, but
+    we want the overlay lines to be black, so we'll go though and darken
+    them here.  This is at the end here because we have to do it after the
+    image is converted back to RGB and after the "clean up" blurring while
+    the image was indexed.
+    
+        (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
+        (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
+
+
+<a id="org56ed55d"></a>
 
 ## Previous Attemps
 
@@ -510,7 +745,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgee523c0"></a>
+<a id="orgc138d4e"></a>
 
 ### Sketch A
 
@@ -540,7 +775,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="orgb65a3f8"></a>
+<a id="orgada0532"></a>
 
 ### Sketch B
 
@@ -585,7 +820,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org61bcb10"></a>
+<a id="orgb77f79d"></a>
 
 ### Comic Book A
 
@@ -631,7 +866,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org669d47a"></a>
+<a id="org22a47e7"></a>
 
 ### Comic Book B
 
@@ -664,16 +899,16 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgf7e652f"></a>
+<a id="orgc947bbb"></a>
 
 ## References
 
 -   [script-fu tutorial](https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html)
 -   [scheme reference](https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html)
--   [scheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/tree/master/plug-ins/script-fu/tinyscheme)
+-   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/tree/master/plug-ins/script-fu/tinyscheme)
 
 
-<a id="orgce1d7a1"></a>
+<a id="orge02298d"></a>
 
 # Literate Programming
 
