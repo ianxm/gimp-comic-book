@@ -16,20 +16,20 @@
 ;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define (script-fu-comic-layout width height cols pattern)
-  (gimp-image-undo-group-start image)
 
   (let* ((ret (file-glob pattern 1))
          (num-files (car ret))
-         (files (cadr ret))
+         (files (reverse (cadr ret)))
+         (frame-aspect-ratio (/ width height))
          (outer-margin 50)
          (inner-margin 15)
          (page-width (+ (* width cols) (*  outer-margin 2) (* inner-margin (- cols 1))))
          (rows (ceiling (/ num-files cols)))
          (page-height (+ (* height rows) (*  outer-margin 2) (* inner-margin (- rows 1))))
          (page (car (gimp-image-new page-width page-height RGB)))
-         (background (car (gimp-layer-new page page-width page-height RGB-IMAGE "background" 100 LAYER-MODE-NORMAL)))
-         (frame-aspect-ratio (/ width height)))
+         (background (car (gimp-layer-new page page-width page-height RGB-IMAGE "background" 100 LAYER-MODE-NORMAL))))
     (gimp-display-new page)
+    (gimp-image-undo-group-start page)
     (gimp-image-insert-layer page background 0 0)
     (gimp-drawable-fill background FILL-WHITE)
 
@@ -59,7 +59,7 @@
              (set! count (+ count 1))
              (set! files (cdr files)))))
 
-    (gimp-image-undo-group-end image)
+    (gimp-image-undo-group-end page)
     (gimp-displays-flush)))
 
 

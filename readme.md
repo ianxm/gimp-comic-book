@@ -1,31 +1,31 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org39f7eea)
-    1.  [Overview](#org6892ccb)
-    2.  [Example](#org253059c)
-    3.  [Filter](#orgdbe9e69)
-        1.  [General Idea](#orgad355ce)
-        2.  [Steps](#orge04a4e6)
-        3.  [Script](#orgffe3b3d)
-    4.  [Page Layout](#org7828a88)
-        1.  [Script](#org3d97787)
-    5.  [Previous Attemps](#org57e4d75)
-        1.  [Sketch A](#orge8b0575)
-        2.  [Sketch B](#org38cb86b)
-        3.  [Comic Book A](#orge96b341)
-        4.  [Comic Book B](#orge6a2e16)
-    6.  [References](#orgc51e458)
-2.  [Literate Programming](#org745a8e6)
+1.  [Comic Book Filter](#org55f2950)
+    1.  [Overview](#orgc8cd5dc)
+    2.  [Example](#orgcec635d)
+    3.  [Filter](#org9b82ecb)
+        1.  [General Idea](#orgdbcd6fa)
+        2.  [Steps](#org54c0ec9)
+        3.  [Script](#orgc5d7a3d)
+    4.  [Page Layout](#org2615ad9)
+        1.  [Script](#org0f85210)
+    5.  [Previous Attemps](#org063e40b)
+        1.  [Sketch A](#org6eea4c8)
+        2.  [Sketch B](#orgdbda99e)
+        3.  [Comic Book A](#org32ced9c)
+        4.  [Comic Book B](#orgc99dfdd)
+    6.  [References](#org6ef06f9)
+2.  [Literate Programming](#org22f499d)
 
 
 
-<a id="org39f7eea"></a>
+<a id="org55f2950"></a>
 
 # Comic Book Filter
 
 
-<a id="org6892ccb"></a>
+<a id="orgc8cd5dc"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="org253059c"></a>
+<a id="orgcec635d"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="orgdbe9e69"></a>
+<a id="org9b82ecb"></a>
 
 ## Filter
 
 
-<a id="orgad355ce"></a>
+<a id="orgdbcd6fa"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orge04a4e6"></a>
+<a id="org54c0ec9"></a>
 
 ### Steps
 
@@ -114,7 +114,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="orgffe3b3d"></a>
+<a id="orgc5d7a3d"></a>
 
 ### Script
 
@@ -504,7 +504,7 @@ into a single script for GIMP.
             )
 
 
-<a id="org7828a88"></a>
+<a id="org2615ad9"></a>
 
 ## Page Layout
 
@@ -513,7 +513,7 @@ like frames in a comic book.  The dimensions of the frames and number
 of columns are configurable, but it creates all frames the same size.
 
 
-<a id="org3d97787"></a>
+<a id="org0f85210"></a>
 
 ### Script
 
@@ -559,20 +559,20 @@ of columns are configurable, but it creates all frames the same size.
     any faces.
     
         (define (script-fu-comic-layout width height cols pattern)
-          (gimp-image-undo-group-start image)
         
           (let* ((ret (file-glob pattern 1))
                  (num-files (car ret))
-                 (files (cadr ret))
+                 (files (reverse (cadr ret)))
+                 (frame-aspect-ratio (/ width height))
                  (outer-margin 50)
                  (inner-margin 15)
                  (page-width (+ (* width cols) (*  outer-margin 2) (* inner-margin (- cols 1))))
                  (rows (ceiling (/ num-files cols)))
                  (page-height (+ (* height rows) (*  outer-margin 2) (* inner-margin (- rows 1))))
                  (page (car (gimp-image-new page-width page-height RGB)))
-                 (background (car (gimp-layer-new page page-width page-height RGB-IMAGE "background" 100 LAYER-MODE-NORMAL)))
-                 (frame-aspect-ratio (/ width height)))
+                 (background (car (gimp-layer-new page page-width page-height RGB-IMAGE "background" 100 LAYER-MODE-NORMAL))))
             (gimp-display-new page)
+            (gimp-image-undo-group-start page)
             (gimp-image-insert-layer page background 0 0)
             (gimp-drawable-fill background FILL-WHITE)
         
@@ -602,11 +602,11 @@ of columns are configurable, but it creates all frames the same size.
                      (set! count (+ count 1))
                      (set! files (cdr files)))))
         
-            (gimp-image-undo-group-end image)
+            (gimp-image-undo-group-end page)
             (gimp-displays-flush)))
 
 
-<a id="org57e4d75"></a>
+<a id="org063e40b"></a>
 
 ## Previous Attemps
 
@@ -614,7 +614,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orge8b0575"></a>
+<a id="org6eea4c8"></a>
 
 ### Sketch A
 
@@ -644,7 +644,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org38cb86b"></a>
+<a id="orgdbda99e"></a>
 
 ### Sketch B
 
@@ -689,7 +689,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orge96b341"></a>
+<a id="org32ced9c"></a>
 
 ### Comic Book A
 
@@ -735,7 +735,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orge6a2e16"></a>
+<a id="orgc99dfdd"></a>
 
 ### Comic Book B
 
@@ -768,7 +768,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgc51e458"></a>
+<a id="org6ef06f9"></a>
 
 ## References
 
@@ -777,7 +777,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/tree/master/plug-ins/script-fu/tinyscheme)
 
 
-<a id="org745a8e6"></a>
+<a id="org22f499d"></a>
 
 # Literate Programming
 
