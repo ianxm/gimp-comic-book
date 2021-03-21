@@ -363,7 +363,7 @@ by the =Lightness= parameter.
   (let ((count 0))
     (while (< count smoothness)
            (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                                (+ 1 smoothness (floor (/ (max width height) 1500)))
+                                (+ 1 smoothness (floor (/ (max width height) 1000)))
                                 50)
            (set! count (+ count 1))))
 
