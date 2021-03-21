@@ -237,6 +237,10 @@ Finally we flush the GIMP display to update the image in the buffer.
 
         (set! background-layer (car (gimp-image-flatten image))))
 
+      (when (<> selection -1)
+        (gimp-image-select-item image CHANNEL-OP-ADD selection)
+        (gimp-image-remove-channel image selection))
+
       (if (and (= allow-resize? TRUE)
                (< (max width height) min-length))
           (gimp-image-scale image width height)))
@@ -438,7 +442,7 @@ operation.
         (gimp-edit-copy background-layer)
         (gimp-selection-all secondary-image)
         (gimp-edit-clear secondary-layer)
-        (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+        (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
           (gimp-floating-sel-anchor float))
         (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-face-colors FALSE TRUE "")
         (set! face-colors (gimp-image-get-colormap secondary-image))
@@ -448,10 +452,11 @@ operation.
         (gimp-edit-copy background-layer)
         (gimp-selection-all secondary-image)
         (gimp-edit-clear secondary-layer)
-        (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+        (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
           (gimp-floating-sel-anchor float))
         (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
         (set! background-colors (gimp-image-get-colormap secondary-image))
+        (gimp-image-remove-layer secondary-image secondary-layer)
         (gimp-image-delete secondary-image)
 
         (gimp-selection-none image)
@@ -474,9 +479,7 @@ operation.
                                                (aref (cadr background-colors) (+ 1 (* index 3)))
                                                (aref (cadr background-colors) (+ 2 (* index 3)))))
                  (set! index (+ index 1)))
-          (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))
-        )
-      )
+          (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))))
 #+end_src
 
 **** full                                                          :noexport:
@@ -1123,8 +1126,8 @@ This simply merges the sketch layer onto the background layer.
 #+end_src
 ** References
   - [[https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html][script-fu tutorial]]
-  - [[https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html][scheme reference]]
-  - [[https://gitlab.gnome.org/GNOME/gimp/-/tree/master/plug-ins/script-fu/tinyscheme][GIMP's tinyscheme implementation]]
+  - [[https://schemers.org/Documents/Standards/R5RS/r5rs.pdf][scheme reference]]
+  - [[https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt][GIMP's tinyscheme implementation]]
 * Literate Programming
 This is written as a [[https://en.wikipedia.org/wiki/Literate_programming][literate program]] using [[https://orgmode.org/][emacs org-mode]].
 [[file:gimp-comic-book.org][The org file]] contains the code and

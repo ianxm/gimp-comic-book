@@ -1,31 +1,31 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org55f2950)
-    1.  [Overview](#orgc8cd5dc)
-    2.  [Example](#orgcec635d)
-    3.  [Filter](#org9b82ecb)
-        1.  [General Idea](#orgdbcd6fa)
-        2.  [Steps](#org54c0ec9)
-        3.  [Script](#orgc5d7a3d)
-    4.  [Page Layout](#org2615ad9)
-        1.  [Script](#org0f85210)
-    5.  [Previous Attemps](#org063e40b)
-        1.  [Sketch A](#org6eea4c8)
-        2.  [Sketch B](#orgdbda99e)
-        3.  [Comic Book A](#org32ced9c)
-        4.  [Comic Book B](#orgc99dfdd)
-    6.  [References](#org6ef06f9)
-2.  [Literate Programming](#org22f499d)
+1.  [Comic Book Filter](#org27893c8)
+    1.  [Overview](#org035f2b5)
+    2.  [Example](#org12eae09)
+    3.  [Filter](#org1c27a42)
+        1.  [General Idea](#orgce0e0eb)
+        2.  [Steps](#orgcfd7293)
+        3.  [Script](#org7910fd4)
+    4.  [Page Layout](#org5b630c4)
+        1.  [Script](#org983ceaa)
+    5.  [Previous Attemps](#org6a3f37e)
+        1.  [Sketch A](#org7bf7b07)
+        2.  [Sketch B](#org0513770)
+        3.  [Comic Book A](#orgcae3431)
+        4.  [Comic Book B](#org064f2ce)
+    6.  [References](#org4acb1ca)
+2.  [Literate Programming](#org16b4887)
 
 
 
-<a id="org55f2950"></a>
+<a id="org27893c8"></a>
 
 # Comic Book Filter
 
 
-<a id="orgc8cd5dc"></a>
+<a id="org035f2b5"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="orgcec635d"></a>
+<a id="org12eae09"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org9b82ecb"></a>
+<a id="org1c27a42"></a>
 
 ## Filter
 
 
-<a id="orgdbcd6fa"></a>
+<a id="orgce0e0eb"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org54c0ec9"></a>
+<a id="orgcfd7293"></a>
 
 ### Steps
 
@@ -114,7 +114,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="orgc5d7a3d"></a>
+<a id="org7910fd4"></a>
 
 ### Script
 
@@ -233,6 +233,7 @@ into a single script for GIMP.
                  (sf 1)
                  (selection -1))
         
+            (gimp-edit-copy background-layer)
         
             (when (= allow-resize? TRUE)
               (cond
@@ -277,6 +278,10 @@ into a single script for GIMP.
               <<darken-overlays>>
         
               (set! background-layer (car (gimp-image-flatten image))))
+        
+            (when (<> selection -1)
+              (gimp-image-select-item image CHANNEL-OP-ADD selection)
+              (gimp-image-remove-channel image selection))
         
             (if (and (= allow-resize? TRUE)
                      (< (max width height) min-length))
@@ -394,7 +399,7 @@ into a single script for GIMP.
         (let ((count 0))
           (while (< count smoothness)
                  (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                                      (+ 1 smoothness (floor (/ (max width height) 1500)))
+                                      (+ 1 smoothness (floor (/ (max width height) 1000)))
                                       50)
                  (set! count (+ count 1))))
         
@@ -463,7 +468,7 @@ into a single script for GIMP.
               (gimp-edit-copy background-layer)
               (gimp-selection-all secondary-image)
               (gimp-edit-clear secondary-layer)
-              (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+              (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
                 (gimp-floating-sel-anchor float))
               (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-face-colors FALSE TRUE "")
               (set! face-colors (gimp-image-get-colormap secondary-image))
@@ -473,10 +478,11 @@ into a single script for GIMP.
               (gimp-edit-copy background-layer)
               (gimp-selection-all secondary-image)
               (gimp-edit-clear secondary-layer)
-              (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+              (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
                 (gimp-floating-sel-anchor float))
               (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
               (set! background-colors (gimp-image-get-colormap secondary-image))
+              (gimp-image-remove-layer secondary-image secondary-layer)
               (gimp-image-delete secondary-image)
         
               (gimp-selection-none image)
@@ -499,12 +505,10 @@ into a single script for GIMP.
                                                      (aref (cadr background-colors) (+ 1 (* index 3)))
                                                      (aref (cadr background-colors) (+ 2 (* index 3)))))
                        (set! index (+ index 1)))
-                (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))
-              )
-            )
+                (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))))
 
 
-<a id="org2615ad9"></a>
+<a id="org5b630c4"></a>
 
 ## Page Layout
 
@@ -513,7 +517,7 @@ like frames in a comic book.  The dimensions of the frames and number
 of columns are configurable, but it creates all frames the same size.
 
 
-<a id="org0f85210"></a>
+<a id="org983ceaa"></a>
 
 ### Script
 
@@ -606,7 +610,7 @@ of columns are configurable, but it creates all frames the same size.
             (gimp-displays-flush)))
 
 
-<a id="org063e40b"></a>
+<a id="org6a3f37e"></a>
 
 ## Previous Attemps
 
@@ -614,7 +618,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org6eea4c8"></a>
+<a id="org7bf7b07"></a>
 
 ### Sketch A
 
@@ -644,7 +648,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="orgdbda99e"></a>
+<a id="org0513770"></a>
 
 ### Sketch B
 
@@ -689,7 +693,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org32ced9c"></a>
+<a id="orgcae3431"></a>
 
 ### Comic Book A
 
@@ -735,7 +739,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orgc99dfdd"></a>
+<a id="org064f2ce"></a>
 
 ### Comic Book B
 
@@ -768,16 +772,16 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org6ef06f9"></a>
+<a id="org4acb1ca"></a>
 
 ## References
 
 -   [script-fu tutorial](https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html)
--   [scheme reference](https://groups.csail.mit.edu/mac/ftpdir/scheme-7.4/doc-html/scheme_toc.html)
--   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/tree/master/plug-ins/script-fu/tinyscheme)
+-   [scheme reference](https://schemers.org/Documents/Standards/R5RS/r5rs.pdf)
+-   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org22f499d"></a>
+<a id="org16b4887"></a>
 
 # Literate Programming
 

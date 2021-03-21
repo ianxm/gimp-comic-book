@@ -27,6 +27,7 @@
          (sf 1)
          (selection -1))
 
+    (gimp-edit-copy background-layer)
 
     (when (= allow-resize? TRUE)
       (cond
@@ -131,7 +132,7 @@
             (gimp-edit-copy background-layer)
             (gimp-selection-all secondary-image)
             (gimp-edit-clear secondary-layer)
-            (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+            (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
               (gimp-floating-sel-anchor float))
             (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-face-colors FALSE TRUE "")
             (set! face-colors (gimp-image-get-colormap secondary-image))
@@ -141,10 +142,11 @@
             (gimp-edit-copy background-layer)
             (gimp-selection-all secondary-image)
             (gimp-edit-clear secondary-layer)
-            (let ((float (car (gimp-edit-paste secondary-layer TRUE))))
+            (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
               (gimp-floating-sel-anchor float))
             (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
             (set! background-colors (gimp-image-get-colormap secondary-image))
+            (gimp-image-remove-layer secondary-image secondary-layer)
             (gimp-image-delete secondary-image)
       
             (gimp-selection-none image)
@@ -167,14 +169,12 @@
                                                    (aref (cadr background-colors) (+ 1 (* index 3)))
                                                    (aref (cadr background-colors) (+ 2 (* index 3)))))
                      (set! index (+ index 1)))
-              (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))
-            )
-          )
+              (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))))
       
       (let ((count 0))
         (while (< count smoothness)
                (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                                    (+ 1 smoothness (floor (/ (max width height) 1500)))
+                                    (+ 1 smoothness (floor (/ (max width height) 1000)))
                                     50)
                (set! count (+ count 1))))
       
@@ -190,6 +190,10 @@
       (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
       (set! background-layer (car (gimp-image-flatten image))))
+
+    (when (<> selection -1)
+      (gimp-image-select-item image CHANNEL-OP-ADD selection)
+      (gimp-image-remove-channel image selection))
 
     (if (and (= allow-resize? TRUE)
              (< (max width height) min-length))
