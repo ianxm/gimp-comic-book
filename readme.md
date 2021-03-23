@@ -1,31 +1,31 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org27893c8)
-    1.  [Overview](#org035f2b5)
-    2.  [Example](#org12eae09)
-    3.  [Filter](#org1c27a42)
-        1.  [General Idea](#orgce0e0eb)
-        2.  [Steps](#orgcfd7293)
-        3.  [Script](#org7910fd4)
-    4.  [Page Layout](#org5b630c4)
-        1.  [Script](#org983ceaa)
-    5.  [Previous Attemps](#org6a3f37e)
-        1.  [Sketch A](#org7bf7b07)
-        2.  [Sketch B](#org0513770)
-        3.  [Comic Book A](#orgcae3431)
-        4.  [Comic Book B](#org064f2ce)
-    6.  [References](#org4acb1ca)
-2.  [Literate Programming](#org16b4887)
+1.  [Comic Book Filter](#org8f4fa99)
+    1.  [Overview](#org44fb7ec)
+    2.  [Example](#org5b2b475)
+    3.  [Filter](#orgfadf531)
+        1.  [General Idea](#orgbf47646)
+        2.  [Steps](#org99a2509)
+        3.  [Script](#orgba5bbb1)
+    4.  [Page Layout](#org37c7ce2)
+        1.  [Script](#org258f8a0)
+    5.  [Previous Attemps](#org75b4961)
+        1.  [Sketch A](#org2c9965f)
+        2.  [Sketch B](#orgd4cb628)
+        3.  [Comic Book A](#orge14f0ea)
+        4.  [Comic Book B](#org183db5f)
+    6.  [References](#org1afad06)
+2.  [Literate Programming](#org256ebeb)
 
 
 
-<a id="org27893c8"></a>
+<a id="org8f4fa99"></a>
 
 # Comic Book Filter
 
 
-<a id="org035f2b5"></a>
+<a id="org44fb7ec"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="org12eae09"></a>
+<a id="org5b2b475"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org1c27a42"></a>
+<a id="orgfadf531"></a>
 
 ## Filter
 
 
-<a id="orgce0e0eb"></a>
+<a id="orgbf47646"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orgcfd7293"></a>
+<a id="org99a2509"></a>
 
 ### Steps
 
@@ -114,7 +114,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="org7910fd4"></a>
+<a id="orgba5bbb1"></a>
 
 ### Script
 
@@ -176,8 +176,7 @@ into a single script for GIMP.
          SF-ADJUSTMENT "Smoothness"           '(2 0 5 1 1 0 1)
          SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
          SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
-         SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0)
-         SF-TOGGLE     "Allow Resize"         TRUE)
+         SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0))
         (script-fu-menu-register "script-fu-comic-book" "<Image>/Filters/Artistic")
 
 3.  convert
@@ -223,40 +222,43 @@ into a single script for GIMP.
     
         (define (script-fu-comic-book image background-layer
                                       num-face-colors num-background-colors smoothness
-                                      lightness detail fine-detail allow-resize?)
-          (gimp-image-undo-group-start image)
+                                      lightness detail fine-detail)
+          ;; (gimp-image-undo-group-start image)
         
           (let* ((width (car (gimp-image-width image)))
                  (height (car (gimp-image-height image)))
-                 (min-length 1200)
+                 (min-length 1500)
                  (max-length 4000)
-                 (sf 1)
+                 (sf 0)
                  (selection -1))
-        
-            (gimp-edit-copy background-layer)
-        
-            (when (= allow-resize? TRUE)
-              (cond
-               ((<= height min-length)
-                (set! sf (/ width height))
-                (gimp-image-scale image (* min-length sf) min-length))
-               ((>= height max-length)
-                (set! sf (/ width height))
-                (gimp-image-scale image (* max-length sf) max-length))
-               ((<= width min-length)
-                (set! sf (/ height width))
-                (gimp-image-scale image min-length (* min-length sf)))
-               ((>= width max-length)
-                (set! sf (/ height width))
-                (gimp-image-scale image max-length (* max-length sf))))
-              (when (> sf 1.2)
-                (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
         
             (if (eqv? (car (gimp-selection-is-empty image)) TRUE)
                 (set! selection -1)
                 (begin 
                   (set! selection (car (gimp-selection-save image)))
                   (gimp-selection-none image)))
+        
+            (cond
+             ((<= height min-length)
+              (set! sf (/ width height))
+              (gimp-image-scale image (* min-length sf) min-length))
+             ((>= height max-length)
+              (set! sf (/ width height))
+              (gimp-image-scale image (* max-length sf) max-length))
+             ((<= width min-length)
+              (set! sf (/ height width))
+              (gimp-image-scale image min-length (* min-length sf)))
+             ((>= width max-length)
+              (set! sf (/ height width))
+              (gimp-image-scale image max-length (* max-length sf))))
+            (when (> sf 1.2)
+              (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0))
+        
+            (let ((count 0))
+              (while (< count 2)
+                     (plug-in-sel-gauss RUN-NONINTERACTIVE image background-layer 5 30)
+                     (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 2 0.2 0.3)
+                     (set! count (+ count 1))))
         
             (when (> lightness 0.0001)
               (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
@@ -267,8 +269,8 @@ into a single script for GIMP.
                                                                                               1.0 1.0)))
               (plug-in-softglow RUN-NONINTERACTIVE image background-layer 5 (* lightness 0.2) 0.5))
         
-            (let* ((sketch-layer (car (gimp-layer-copy background-layer FALSE)))
-                   (trace-layer (car (gimp-layer-copy background-layer FALSE))))
+            (let* ((trace-layer (car (gimp-layer-copy background-layer FALSE)))
+                   (sketch-layer (car (gimp-layer-copy background-layer FALSE))))
               <<trace-layer>>
         
               <<sketch-layer>>
@@ -277,17 +279,16 @@ into a single script for GIMP.
         
               <<darken-overlays>>
         
+              (when (> sf 1.2)
+                (gimp-image-scale image width height))
+        
               (set! background-layer (car (gimp-image-flatten image))))
         
             (when (<> selection -1)
               (gimp-image-select-item image CHANNEL-OP-ADD selection)
-              (gimp-image-remove-channel image selection))
+              (gimp-image-remove-channel image selection)))
         
-            (if (and (= allow-resize? TRUE)
-                     (< (max width height) min-length))
-                (gimp-image-scale image width height)))
-        
-          (gimp-image-undo-group-end image)
+          ;; (gimp-image-undo-group-end image)
           (gimp-displays-flush))
     
     Here we create a "trace layer" that traces over lines.  It adds thin
@@ -311,6 +312,7 @@ into a single script for GIMP.
           (gimp-image-add-layer image trace-layer 0)
           (gimp-item-set-name trace-layer "trace")
           (gimp-image-set-active-layer image trace-layer)
+          (plug-in-unsharp-mask RUN-NONINTERACTIVE image trace-layer 3 0.5 0)
         
           (gimp-drawable-curves-spline trace-layer HISTOGRAM-VALUE 6 (list->vector (list
                                                                                     0.0 0.0
@@ -353,6 +355,7 @@ into a single script for GIMP.
           (gimp-image-add-layer image sketch-layer 0)
           (gimp-item-set-name sketch-layer "sketch")
           (gimp-image-set-active-layer image sketch-layer)
+          (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 3 0.5 0)
           (gimp-drawable-curves-spline sketch-layer HISTOGRAM-VALUE 10 (list->vector (list
                                                                                       0.0  0.25
                                                                                       0.25 0.375
@@ -396,12 +399,9 @@ into a single script for GIMP.
         (gimp-image-set-active-layer image background-layer)
         <<comic-index>>
         
-        (let ((count 0))
-          (while (< count smoothness)
-                 (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                                      (+ 1 smoothness (floor (/ (max width height) 1000)))
-                                      50)
-                 (set! count (+ count 1))))
+        (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
+                             (+ 1 smoothness (floor (/ (max (car (gimp-image-width image)) (car (gimp-image-height image))) 800)))
+                             50)
         
         (gimp-image-set-active-layer image sketch-layer)
         (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
@@ -409,7 +409,7 @@ into a single script for GIMP.
         (gimp-image-set-active-layer image background-layer)
         (gimp-image-convert-rgb image)
         (when (> lightness 0.0001)
-            (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
+          (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
     
     When we indexed the colors the overlays may have been lightened, but
     we want the overlay lines to be black, so we'll go though and darken
@@ -508,7 +508,7 @@ into a single script for GIMP.
                 (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))))
 
 
-<a id="org5b630c4"></a>
+<a id="org37c7ce2"></a>
 
 ## Page Layout
 
@@ -517,7 +517,7 @@ like frames in a comic book.  The dimensions of the frames and number
 of columns are configurable, but it creates all frames the same size.
 
 
-<a id="org983ceaa"></a>
+<a id="org258f8a0"></a>
 
 ### Script
 
@@ -610,7 +610,7 @@ of columns are configurable, but it creates all frames the same size.
             (gimp-displays-flush)))
 
 
-<a id="org6a3f37e"></a>
+<a id="org75b4961"></a>
 
 ## Previous Attemps
 
@@ -618,7 +618,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org7bf7b07"></a>
+<a id="org2c9965f"></a>
 
 ### Sketch A
 
@@ -648,7 +648,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org0513770"></a>
+<a id="orgd4cb628"></a>
 
 ### Sketch B
 
@@ -693,7 +693,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orgcae3431"></a>
+<a id="orge14f0ea"></a>
 
 ### Comic Book A
 
@@ -739,7 +739,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org064f2ce"></a>
+<a id="org183db5f"></a>
 
 ### Comic Book B
 
@@ -772,7 +772,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org4acb1ca"></a>
+<a id="org1afad06"></a>
 
 ## References
 
@@ -781,7 +781,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org16b4887"></a>
+<a id="org256ebeb"></a>
 
 # Literate Programming
 

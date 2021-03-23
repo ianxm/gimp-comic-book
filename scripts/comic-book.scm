@@ -17,40 +17,43 @@
 
 (define (script-fu-comic-book image background-layer
                               num-face-colors num-background-colors smoothness
-                              lightness detail fine-detail allow-resize?)
-  (gimp-image-undo-group-start image)
+                              lightness detail fine-detail)
+  ;; (gimp-image-undo-group-start image)
 
   (let* ((width (car (gimp-image-width image)))
          (height (car (gimp-image-height image)))
-         (min-length 1200)
+         (min-length 1500)
          (max-length 4000)
-         (sf 1)
+         (sf 0)
          (selection -1))
-
-    (gimp-edit-copy background-layer)
-
-    (when (= allow-resize? TRUE)
-      (cond
-       ((<= height min-length)
-        (set! sf (/ width height))
-        (gimp-image-scale image (* min-length sf) min-length))
-       ((>= height max-length)
-        (set! sf (/ width height))
-        (gimp-image-scale image (* max-length sf) max-length))
-       ((<= width min-length)
-        (set! sf (/ height width))
-        (gimp-image-scale image min-length (* min-length sf)))
-       ((>= width max-length)
-        (set! sf (/ height width))
-        (gimp-image-scale image max-length (* max-length sf))))
-      (when (> sf 1.2)
-        (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
     (if (eqv? (car (gimp-selection-is-empty image)) TRUE)
         (set! selection -1)
         (begin 
           (set! selection (car (gimp-selection-save image)))
           (gimp-selection-none image)))
+
+    (cond
+     ((<= height min-length)
+      (set! sf (/ width height))
+      (gimp-image-scale image (* min-length sf) min-length))
+     ((>= height max-length)
+      (set! sf (/ width height))
+      (gimp-image-scale image (* max-length sf) max-length))
+     ((<= width min-length)
+      (set! sf (/ height width))
+      (gimp-image-scale image min-length (* min-length sf)))
+     ((>= width max-length)
+      (set! sf (/ height width))
+      (gimp-image-scale image max-length (* max-length sf))))
+    (when (> sf 1.2)
+      (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0))
+
+    (let ((count 0))
+      (while (< count 2)
+             (plug-in-sel-gauss RUN-NONINTERACTIVE image background-layer 5 30)
+             (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 2 0.2 0.3)
+             (set! count (+ count 1))))
 
     (when (> lightness 0.0001)
       (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
@@ -61,12 +64,13 @@
                                                                                       1.0 1.0)))
       (plug-in-softglow RUN-NONINTERACTIVE image background-layer 5 (* lightness 0.2) 0.5))
 
-    (let* ((sketch-layer (car (gimp-layer-copy background-layer FALSE)))
-           (trace-layer (car (gimp-layer-copy background-layer FALSE))))
+    (let* ((trace-layer (car (gimp-layer-copy background-layer FALSE)))
+           (sketch-layer (car (gimp-layer-copy background-layer FALSE))))
       (when (> fine-detail 0.0001)
         (gimp-image-add-layer image trace-layer 0)
         (gimp-item-set-name trace-layer "trace")
         (gimp-image-set-active-layer image trace-layer)
+        (plug-in-unsharp-mask RUN-NONINTERACTIVE image trace-layer 3 0.5 0)
       
         (gimp-drawable-curves-spline trace-layer HISTOGRAM-VALUE 6 (list->vector (list
                                                                                   0.0 0.0
@@ -91,6 +95,7 @@
         (gimp-image-add-layer image sketch-layer 0)
         (gimp-item-set-name sketch-layer "sketch")
         (gimp-image-set-active-layer image sketch-layer)
+        (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 3 0.5 0)
         (gimp-drawable-curves-spline sketch-layer HISTOGRAM-VALUE 10 (list->vector (list
                                                                                     0.0  0.25
                                                                                     0.25 0.375
@@ -171,12 +176,9 @@
                      (set! index (+ index 1)))
               (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))))
       
-      (let ((count 0))
-        (while (< count smoothness)
-               (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                                    (+ 1 smoothness (floor (/ (max width height) 1000)))
-                                    50)
-               (set! count (+ count 1))))
+      (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
+                           (+ 1 smoothness (floor (/ (max (car (gimp-image-width image)) (car (gimp-image-height image))) 800)))
+                           50)
       
       (gimp-image-set-active-layer image sketch-layer)
       (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
@@ -184,22 +186,21 @@
       (gimp-image-set-active-layer image background-layer)
       (gimp-image-convert-rgb image)
       (when (> lightness 0.0001)
-          (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
+        (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
 
       (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
       (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
+
+      (when (> sf 1.2)
+        (gimp-image-scale image width height))
 
       (set! background-layer (car (gimp-image-flatten image))))
 
     (when (<> selection -1)
       (gimp-image-select-item image CHANNEL-OP-ADD selection)
-      (gimp-image-remove-channel image selection))
+      (gimp-image-remove-channel image selection)))
 
-    (if (and (= allow-resize? TRUE)
-             (< (max width height) min-length))
-        (gimp-image-scale image width height)))
-
-  (gimp-image-undo-group-end image)
+  ;; (gimp-image-undo-group-end image)
   (gimp-displays-flush))
 
 
@@ -218,6 +219,5 @@
  SF-ADJUSTMENT "Smoothness"           '(2 0 5 1 1 0 1)
  SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
- SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0)
- SF-TOGGLE     "Allow Resize"         TRUE)
+ SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0))
 (script-fu-menu-register "script-fu-comic-book" "<Image>/Filters/Artistic")
