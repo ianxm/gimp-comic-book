@@ -24,7 +24,7 @@
          (height (car (gimp-image-height image)))
          (min-length 1500)
          (max-length 4000)
-         (sf 0)
+         (sf 1)
          (selection -1))
 
     (if (eqv? (car (gimp-selection-is-empty image)) TRUE)
@@ -34,20 +34,14 @@
           (gimp-selection-none image)))
 
     (cond
-     ((<= height min-length)
-      (set! sf (/ width height))
-      (gimp-image-scale image (* min-length sf) min-length))
-     ((>= height max-length)
-      (set! sf (/ width height))
-      (gimp-image-scale image (* max-length sf) max-length))
-     ((<= width min-length)
-      (set! sf (/ height width))
-      (gimp-image-scale image min-length (* min-length sf)))
-     ((>= width max-length)
-      (set! sf (/ height width))
-      (gimp-image-scale image max-length (* max-length sf))))
-    (when (> sf 1.2)
-      (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0))
+     ((< (max width height) min-length)
+      (set! sf (min 5 (/ min-length (max width height)))))
+     ((> (max width height) max-length)
+      (set! sf (/ max-length (max width height)))))
+    (when (<> sf 1)
+      (gimp-image-scale image (* width sf) (* height sf))
+      (when (> sf 1.2)
+        (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
     (let ((count 0))
       (while (< count 2)
@@ -191,7 +185,7 @@
       (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
       (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
-      (when (> sf 1.2)
+      (when (<> sf 1)
         (gimp-image-scale image width height))
 
       (set! background-layer (car (gimp-image-flatten image))))

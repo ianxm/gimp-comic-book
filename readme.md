@@ -1,31 +1,31 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#orgb332155)
-    1.  [Overview](#orgfef63c5)
-    2.  [Example](#org6320ecc)
-    3.  [Filter](#orgbf662ea)
-        1.  [General Idea](#org3bd74ef)
-        2.  [Steps](#org54f4bec)
-        3.  [Script](#org8113c03)
-    4.  [Page Layout](#org136f17b)
-        1.  [Script](#org7402c45)
-    5.  [Previous Attemps](#org92f69c2)
-        1.  [Sketch A](#org8cb226c)
-        2.  [Sketch B](#orgee3425b)
-        3.  [Comic Book A](#org01eaa90)
-        4.  [Comic Book B](#org2d5c197)
-    6.  [References](#orgd2d4f19)
-2.  [Literate Programming](#orgaa48b85)
+1.  [Comic Book Filter](#org037f7c1)
+    1.  [Overview](#org1001f33)
+    2.  [Example](#org6de5549)
+    3.  [Filter](#org2e89eb6)
+        1.  [General Idea](#orge8d0613)
+        2.  [Steps](#orgfab7c5a)
+        3.  [Script](#orge9e328c)
+    4.  [Page Layout](#orgda322d2)
+        1.  [Script](#org677df54)
+    5.  [Previous Attemps](#org8f2450f)
+        1.  [Sketch A](#org4f8f8ef)
+        2.  [Sketch B](#org3fa6b43)
+        3.  [Comic Book A](#org66f29d2)
+        4.  [Comic Book B](#orgb0efe7c)
+    6.  [References](#org0d0f707)
+2.  [Literate Programming](#org1697bbf)
 
 
 
-<a id="orgb332155"></a>
+<a id="org037f7c1"></a>
 
 # Comic Book Filter
 
 
-<a id="orgfef63c5"></a>
+<a id="org1001f33"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="org6320ecc"></a>
+<a id="org6de5549"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="orgbf662ea"></a>
+<a id="org2e89eb6"></a>
 
 ## Filter
 
 
-<a id="org3bd74ef"></a>
+<a id="orge8d0613"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org54f4bec"></a>
+<a id="orgfab7c5a"></a>
 
 ### Steps
 
@@ -114,7 +114,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="org8113c03"></a>
+<a id="orge9e328c"></a>
 
 ### Script
 
@@ -229,7 +229,7 @@ into a single script for GIMP.
                  (height (car (gimp-image-height image)))
                  (min-length 1500)
                  (max-length 4000)
-                 (sf 0)
+                 (sf 1)
                  (selection -1))
         
             (if (eqv? (car (gimp-selection-is-empty image)) TRUE)
@@ -239,20 +239,14 @@ into a single script for GIMP.
                   (gimp-selection-none image)))
         
             (cond
-             ((<= height min-length)
-              (set! sf (/ width height))
-              (gimp-image-scale image (* min-length sf) min-length))
-             ((>= height max-length)
-              (set! sf (/ width height))
-              (gimp-image-scale image (* max-length sf) max-length))
-             ((<= width min-length)
-              (set! sf (/ height width))
-              (gimp-image-scale image min-length (* min-length sf)))
-             ((>= width max-length)
-              (set! sf (/ height width))
-              (gimp-image-scale image max-length (* max-length sf))))
-            (when (> sf 1.2)
-              (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0))
+             ((< (max width height) min-length)
+              (set! sf (min 5 (/ min-length (max width height)))))
+             ((> (max width height) max-length)
+              (set! sf (/ max-length (max width height)))))
+            (when (<> sf 1)
+              (gimp-image-scale image (* width sf) (* height sf))
+              (when (> sf 1.2)
+                (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
         
             (let ((count 0))
               (while (< count 2)
@@ -279,7 +273,7 @@ into a single script for GIMP.
         
               <<darken-overlays>>
         
-              (when (> sf 1.2)
+              (when (<> sf 1)
                 (gimp-image-scale image width height))
         
               (set! background-layer (car (gimp-image-flatten image))))
@@ -508,7 +502,7 @@ into a single script for GIMP.
                 (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))))
 
 
-<a id="org136f17b"></a>
+<a id="orgda322d2"></a>
 
 ## Page Layout
 
@@ -517,7 +511,7 @@ like frames in a comic book.  The dimensions of the frames and number
 of columns are configurable, but it creates all frames the same size.
 
 
-<a id="org7402c45"></a>
+<a id="org677df54"></a>
 
 ### Script
 
@@ -610,7 +604,7 @@ of columns are configurable, but it creates all frames the same size.
             (gimp-displays-flush)))
 
 
-<a id="org92f69c2"></a>
+<a id="org8f2450f"></a>
 
 ## Previous Attemps
 
@@ -618,7 +612,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org8cb226c"></a>
+<a id="org4f8f8ef"></a>
 
 ### Sketch A
 
@@ -648,7 +642,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="orgee3425b"></a>
+<a id="org3fa6b43"></a>
 
 ### Sketch B
 
@@ -693,7 +687,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org01eaa90"></a>
+<a id="org66f29d2"></a>
 
 ### Comic Book A
 
@@ -739,7 +733,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org2d5c197"></a>
+<a id="orgb0efe7c"></a>
 
 ### Comic Book B
 
@@ -772,7 +766,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgd2d4f19"></a>
+<a id="org0d0f707"></a>
 
 ## References
 
@@ -781,7 +775,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="orgaa48b85"></a>
+<a id="org1697bbf"></a>
 
 # Literate Programming
 
