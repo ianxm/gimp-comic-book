@@ -1,31 +1,31 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org8f4fa99)
-    1.  [Overview](#org44fb7ec)
-    2.  [Example](#org5b2b475)
-    3.  [Filter](#orgfadf531)
-        1.  [General Idea](#orgbf47646)
-        2.  [Steps](#org99a2509)
-        3.  [Script](#orgba5bbb1)
-    4.  [Page Layout](#org37c7ce2)
-        1.  [Script](#org258f8a0)
-    5.  [Previous Attemps](#org75b4961)
-        1.  [Sketch A](#org2c9965f)
-        2.  [Sketch B](#orgd4cb628)
-        3.  [Comic Book A](#orge14f0ea)
-        4.  [Comic Book B](#org183db5f)
-    6.  [References](#org1afad06)
-2.  [Literate Programming](#org256ebeb)
+1.  [Comic Book Filter](#orgb332155)
+    1.  [Overview](#orgfef63c5)
+    2.  [Example](#org6320ecc)
+    3.  [Filter](#orgbf662ea)
+        1.  [General Idea](#org3bd74ef)
+        2.  [Steps](#org54f4bec)
+        3.  [Script](#org8113c03)
+    4.  [Page Layout](#org136f17b)
+        1.  [Script](#org7402c45)
+    5.  [Previous Attemps](#org92f69c2)
+        1.  [Sketch A](#org8cb226c)
+        2.  [Sketch B](#orgee3425b)
+        3.  [Comic Book A](#org01eaa90)
+        4.  [Comic Book B](#org2d5c197)
+    6.  [References](#orgd2d4f19)
+2.  [Literate Programming](#orgaa48b85)
 
 
 
-<a id="org8f4fa99"></a>
+<a id="orgb332155"></a>
 
 # Comic Book Filter
 
 
-<a id="org44fb7ec"></a>
+<a id="orgfef63c5"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="org5b2b475"></a>
+<a id="org6320ecc"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="orgfadf531"></a>
+<a id="orgbf662ea"></a>
 
 ## Filter
 
 
-<a id="orgbf47646"></a>
+<a id="org3bd74ef"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org99a2509"></a>
+<a id="org54f4bec"></a>
 
 ### Steps
 
@@ -114,7 +114,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="orgba5bbb1"></a>
+<a id="org8113c03"></a>
 
 ### Script
 
@@ -151,12 +151,12 @@ into a single script for GIMP.
         (only used if there is a selection)
     -   **Background Colors:** The number of colors to choose for the rest of
         the image
-    -   **Smoothness:** a higher value results in more background blurring,
-        which looks like smoother curves where indexed colors meet
+    -   **Smoothness:** a higher value results in smoother curves where
+        indexed colors meet, which is what you'd expect if the colors were
+        drawn by hand
     -   **Lightness:** a higher value results in lighter colors
     -   **Detail:** a higher value results in more lines
     -   **Fine Detail:** a higher value results in more thin lines
-    -   **Allow Resize:** if true, resize the pic to be within bounds that usually work well
     
     The meaning of the values we set is explained in [section 3.4.8 of the
     GIMP doc](https://docs.gimp.org/2.8/en/gimp-using-script-fu-tutorial-first-script.html).
@@ -187,19 +187,19 @@ into a single script for GIMP.
     the steps show up in GIMP as a single action.  This means that one
     "undo" brings you back to the image before this filter was run.
     
-    Edge detection seems to work best on an image sized in the 1200 to
-    4000 range, so we enlarge or shrink our image if needed (this can be
-    disabled with the `Allow Resize` parameter).  If we enlarge an image
-    significantly, we also sharpen it because enlarging an image can cause
-    it to blur.
-    
-    If we enlarge it at the beginning we shrink it back to its original
-    size at the end.  If we shrunk it at the beginning we leave it since
-    the smaller image may be sufficient and we don't want to resize it
-    unnecessarily.
-    
     If there is a selection, we save it to a channel and dismiss it.  It
-    is used later when we index the background colors.
+    is used later when we index the colors.
+    
+    Edge detection seems to work best on an image sized in the 1500 to
+    4000 range, so we enlarge or shrink our image if needed.  If we
+    enlarge an image significantly, we also sharpen it because enlarging
+    an image can cause it to blur.  If we enlarge it at the beginning we
+    shrink it back to its original size at the end.
+    
+    Then we go through two steps of blurring and sharpening the image.
+    Both operations run with thresholds to prevent the loss of edges.  The
+    overall effect is to reduce noise, which is especially problematic in
+    low light photos.
     
     The next thing we do to the image is to lighten it.  We apply `curves`
     and then a `softglow` filter.  We skip both of these if the
@@ -508,7 +508,7 @@ into a single script for GIMP.
                 (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))))
 
 
-<a id="org37c7ce2"></a>
+<a id="org136f17b"></a>
 
 ## Page Layout
 
@@ -517,7 +517,7 @@ like frames in a comic book.  The dimensions of the frames and number
 of columns are configurable, but it creates all frames the same size.
 
 
-<a id="org258f8a0"></a>
+<a id="org7402c45"></a>
 
 ### Script
 
@@ -610,7 +610,7 @@ of columns are configurable, but it creates all frames the same size.
             (gimp-displays-flush)))
 
 
-<a id="org75b4961"></a>
+<a id="org92f69c2"></a>
 
 ## Previous Attemps
 
@@ -618,7 +618,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org2c9965f"></a>
+<a id="org8cb226c"></a>
 
 ### Sketch A
 
@@ -648,7 +648,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="orgd4cb628"></a>
+<a id="orgee3425b"></a>
 
 ### Sketch B
 
@@ -693,7 +693,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orge14f0ea"></a>
+<a id="org01eaa90"></a>
 
 ### Comic Book A
 
@@ -739,7 +739,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org183db5f"></a>
+<a id="org2d5c197"></a>
 
 ### Comic Book B
 
@@ -772,7 +772,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org1afad06"></a>
+<a id="orgd2d4f19"></a>
 
 ## References
 
@@ -781,7 +781,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org256ebeb"></a>
+<a id="orgaa48b85"></a>
 
 # Literate Programming
 

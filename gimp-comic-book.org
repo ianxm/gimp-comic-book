@@ -106,12 +106,12 @@ boilerblate except seven of the parameters, which I'll go over now.
   (only used if there is a selection)
 - Background Colors :: The number of colors to choose for the rest of
   the image
-- Smoothness :: a higher value results in more background blurring,
-  which looks like smoother curves where indexed colors meet
+- Smoothness :: a higher value results in smoother curves where
+  indexed colors meet, which is what you'd expect if the colors were
+  drawn by hand
 - Lightness :: a higher value results in lighter colors
 - Detail :: a higher value results in more lines
 - Fine Detail :: a higher value results in more thin lines
-- Allow Resize :: if true, resize the pic to be within bounds that usually work well
 
 The meaning of the values we set is explained in [[https://docs.gimp.org/2.8/en/gimp-using-script-fu-tutorial-first-script.html][section 3.4.8 of the
 GIMP doc]].
@@ -144,19 +144,19 @@ We wrap all operations on the image in an undo group so that all of
 the steps show up in GIMP as a single action.  This means that one
 "undo" brings you back to the image before this filter was run.
 
-Edge detection seems to work best on an image sized in the 1200 to
-4000 range, so we enlarge or shrink our image if needed (this can be
-disabled with the =Allow Resize= parameter).  If we enlarge an image
-significantly, we also sharpen it because enlarging an image can cause
-it to blur.
-
-If we enlarge it at the beginning we shrink it back to its original
-size at the end.  If we shrunk it at the beginning we leave it since
-the smaller image may be sufficient and we don't want to resize it
-unnecessarily.
-
 If there is a selection, we save it to a channel and dismiss it.  It
-is used later when we index the background colors.
+is used later when we index the colors.
+
+Edge detection seems to work best on an image sized in the 1500 to
+4000 range, so we enlarge or shrink our image if needed.  If we
+enlarge an image significantly, we also sharpen it because enlarging
+an image can cause it to blur.  If we enlarge it at the beginning we
+shrink it back to its original size at the end.
+
+Then we go through two steps of blurring and sharpening the image.
+Both operations run with thresholds to prevent the loss of edges.  The
+overall effect is to reduce noise, which is especially problematic in
+low light photos.
 
 The next thing we do to the image is to lighten it.  We apply =curves=
 and then a =softglow= filter.  We skip both of these if the
