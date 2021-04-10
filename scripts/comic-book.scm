@@ -17,13 +17,12 @@
 
 (define (script-fu-comic-book image background-layer
                               num-face-colors num-background-colors smoothness
-                              lightness detail fine-detail)
+                              blur-cycles lightness detail fine-detail)
   ;; (gimp-image-undo-group-start image)
 
   (let* ((width (car (gimp-image-width image)))
          (height (car (gimp-image-height image)))
          (min-length 1500)
-         (max-length 4000)
          (sf 1)
          (selection -1))
 
@@ -33,20 +32,18 @@
           (set! selection (car (gimp-selection-save image)))
           (gimp-selection-none image)))
 
-    (cond
-     ((< (max width height) min-length)
+    (when (< (max width height) min-length)
       (set! sf (min 5 (/ min-length (max width height)))))
-     ((> (max width height) max-length)
-      (set! sf (/ max-length (max width height)))))
     (when (<> sf 1)
       (gimp-image-scale image (* width sf) (* height sf))
       (when (> sf 1.2)
         (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
-    (let ((count 0))
-      (while (< count 2)
-             (plug-in-sel-gauss RUN-NONINTERACTIVE image background-layer 5 30)
-             (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 2 0.2 0.3)
+    (let ((count 0)
+          (blur-strength (+ blur-cycles 1)))
+      (while (< count blur-cycles)
+             (plug-in-gauss RUN-NONINTERACTIVE image background-layer blur-strength blur-strength 0)
+             (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer (- blur-strength 1) 0.3 0.3)
              (set! count (+ count 1))))
 
     (when (> lightness 0.0001)
@@ -64,7 +61,6 @@
         (gimp-image-add-layer image trace-layer 0)
         (gimp-item-set-name trace-layer "trace")
         (gimp-image-set-active-layer image trace-layer)
-        (plug-in-unsharp-mask RUN-NONINTERACTIVE image trace-layer 3 0.5 0)
       
         (gimp-drawable-curves-spline trace-layer HISTOGRAM-VALUE 6 (list->vector (list
                                                                                   0.0 0.0
@@ -89,7 +85,6 @@
         (gimp-image-add-layer image sketch-layer 0)
         (gimp-item-set-name sketch-layer "sketch")
         (gimp-image-set-active-layer image sketch-layer)
-        (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 3 0.5 0)
         (gimp-drawable-curves-spline sketch-layer HISTOGRAM-VALUE 10 (list->vector (list
                                                                                     0.0  0.25
                                                                                     0.25 0.375
@@ -100,11 +95,7 @@
                (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
           (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
-      
-        (let ((count 0))
-          (while (< count 2)
-                 (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
-                 (set! count (+ count 1))))
+        (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
       
         (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
 
@@ -211,6 +202,7 @@
  SF-ADJUSTMENT "Face Colors"          '(5 2 12 1 10 0 0)
  SF-ADJUSTMENT "Background Colors"    '(24 3 64 1 10 0 0)
  SF-ADJUSTMENT "Smoothness"           '(2 0 5 1 1 0 1)
+ SF-ADJUSTMENT "Blur Cycles"          '(1 0 6 1 1 0 1)
  SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0))
