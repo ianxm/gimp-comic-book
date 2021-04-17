@@ -15,6 +15,9 @@
 ;    You should have received a copy of the GNU General Public License
 ;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+
+
 (define (script-fu-comic-book image background-layer
                               num-face-colors num-background-colors smoothness
                               blur-cycles lightness detail fine-detail)
@@ -118,6 +121,7 @@
             (gimp-image-insert-layer secondary-image secondary-layer 0 0)
             ;; (gimp-display-new secondary-image)
       
+            ;; index face colors
             (gimp-image-select-item image CHANNEL-OP-ADD selection)
             (gimp-edit-copy background-layer)
             (gimp-selection-all secondary-image)
@@ -125,9 +129,10 @@
             (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
               (gimp-floating-sel-anchor float))
             (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-face-colors FALSE TRUE "")
-            (set! face-colors (gimp-image-get-colormap secondary-image))
+            (set! face-colors (script-fu-comic-extract-colormap (gimp-image-get-colormap secondary-image)))
             (gimp-image-convert-rgb secondary-image)
-      
+            
+            ;; index background colors
             (gimp-selection-invert image)
             (gimp-edit-copy background-layer)
             (gimp-selection-all secondary-image)
@@ -135,31 +140,65 @@
             (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
               (gimp-floating-sel-anchor float))
             (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
-            (set! background-colors (gimp-image-get-colormap secondary-image))
+            (set! background-colors (script-fu-comic-extract-colormap (gimp-image-get-colormap secondary-image)))
             (gimp-image-remove-layer secondary-image secondary-layer)
             (gimp-image-delete secondary-image)
       
+            ;; prune excess colors
+            (let* ((prune-range 255)
+                   (black '(0 0 0))
+                   (white '(255 255 255))
+                   (c1 face-colors)
+                   (c2 '()))
+              ;; remove black and white from face colors
+              (set! face-colors (foldr (lambda (x y)
+                                         (if (or (equal? x black)
+                                                 (equal? x white))
+                                             x
+                                             (cons y x)))
+                                       '()
+                                       face-colors))
+              ;; find prune range
+              (while (not (null? c1))
+                     (set! c2 (cdr c1))
+                     (while (not (null? c2))
+                            (set! prune-range (min (script-fu-comic-dist (car c1) (car c2)) prune-range))
+                            (set! c2 (cdr c2)))
+                     (set! c1 (cdr c1)))
+              (set! prune-range (/ prune-range 2))
+            
+              ;; remove black, white and any colors within prune-range of face colors from background colors
+              (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
+                                               (if (or (equal? y black)
+                                                       (equal? y white)
+                                                       (any? (lambda (z) ; z is face point
+                                                               (< (script-fu-comic-dist y z) prune-range))
+                                                             face-colors))
+                                                   x
+                                                   (cons y x)))
+                                             '()
+                                             background-colors)))
+      
+            ;; combine colors in new palette
             (gimp-selection-none image)
-            (let ((palette-name (car (gimp-palette-new "indexed")))
+            (let ((palette-name (car (gimp-palette-new "comic")))
                   (index 0))
-              (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) '(0 0 0))
-              (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) '(255 255 255))
-              (while (< index num-face-colors)
-                     (gimp-palette-add-entry palette-name
-                                             (string-append "f" (number->string index))
-                                             (list (aref (cadr face-colors) (+ 0 (* index 3)))
-                                                   (aref (cadr face-colors) (+ 1 (* index 3)))
-                                                   (aref (cadr face-colors) (+ 2 (* index 3)))))
-                     (set! index (+ index 1)))
+            
+              (gimp-palette-add-entry palette-name "m0" '(0 0 0))
+              (gimp-palette-add-entry palette-name "m1" '(255 255 255))
+            
+              (for-each (lambda (x)
+                          (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) x)
+                          (set! index (+ index 1)))
+                        face-colors)
               (set! index 0)
-              (while (< index num-background-colors)
-                     (gimp-palette-add-entry palette-name
-                                             (string-append "b" (number->string index))
-                                             (list (aref (cadr background-colors) (+ 0 (* index 3)))
-                                                   (aref (cadr background-colors) (+ 1 (* index 3)))
-                                                   (aref (cadr background-colors) (+ 2 (* index 3)))))
-                     (set! index (+ index 1)))
-              (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))))
+              (for-each (lambda (x)
+                          (gimp-palette-add-entry palette-name (string-append "b" (number->string index)) x)
+                          (set! index (+ index 1)))
+                        background-colors)
+              (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name)
+              (gimp-palette-delete palette-name)))
+            )
       
       (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
                            (+ 1 smoothness (floor (/ (max (car (gimp-image-width image)) (car (gimp-image-height image))) 800)))

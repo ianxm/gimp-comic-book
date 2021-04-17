@@ -385,27 +385,20 @@ the image was indexed.
 
 This section handles the indexing of the background layer.  Indexing
 an image to flatten the colors works well in some cases, but when
-there are people if faces are small relative to the background often
+there are people and faces are small relative to the background often
 the algorithm that chooses colors will pick colors that work well for
 the background but may not be optimal for faces.  The most important
-thing about an image is if the people in the image are recognizeable,
-and using sub-optimal colors for skin tones sometimes results in
-people that don't look right.  One way around this is to keep
-increasing the number of colors but this reduces the flattening of the
-colors, so the end result is less cartoon-like.
+thing about a comic image is if the people are recognizeable, and
+using sub-optimal colors for skin tones often results in people that
+don't look right.  One way around this is to keep increasing the
+number of colors but this reduces the flattening of the colors, so the
+end result is less cartoon-like.
 
-To get around this we index faces separately.  First we index only the
-selected part of the image (allowing up to =Face Colors= colors) and
-save the chosen colors.  Then we index the rest of the image (allowing
-up to =Background Colors= colors) and save those.  Finally we index
-the whole image using all of the colors collected from the previous
-two indexing operations.
+To get around this we index faces separately from the background, then
+combine the colors found in the two indexing runs.
 
-Indexing an image is destructive so when we index a portion of the
-image just to find out which colors the indexer will choose, we do it
-in a secondary image.  We also manually add black and white to the
-list of colors in case they weren't chosen in either indexing
-operation.
+In the code below, if set up a secondary image for use in the indexing
+runs, which will be described in greater details in the sections below.
 
 #+name: comic-index
 #+begin_src scheme :noweb no-export
@@ -427,6 +420,26 @@ operation.
         (gimp-image-insert-layer secondary-image secondary-layer 0 0)
         ;; (gimp-display-new secondary-image)
 
+        <<get-colormaps>>
+
+        <<prune-colors>>
+
+        <<build-palette-and-index>>
+        )
+#+end_src
+
+First we index only the selected part of the image (allowing up to
+=Face Colors= colors) and save the chosen colors.  Then we index the
+rest of the image (allowing up to =Background Colors= colors) and save
+those.
+
+Indexing an image is destructive so when we index a portion of the
+image just to find out which colors the indexer will choose, we do it
+in a secondary image.
+
+#+name: get-colormaps
+#+begin_src scheme
+        ;; index face colors
         (gimp-image-select-item image CHANNEL-OP-ADD selection)
         (gimp-edit-copy background-layer)
         (gimp-selection-all secondary-image)
@@ -434,9 +447,10 @@ operation.
         (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
           (gimp-floating-sel-anchor float))
         (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-face-colors FALSE TRUE "")
-        (set! face-colors (gimp-image-get-colormap secondary-image))
+        (set! face-colors (script-fu-comic-extract-colormap (gimp-image-get-colormap secondary-image)))
         (gimp-image-convert-rgb secondary-image)
 
+        ;; index background colors
         (gimp-selection-invert image)
         (gimp-edit-copy background-layer)
         (gimp-selection-all secondary-image)
@@ -444,31 +458,124 @@ operation.
         (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
           (gimp-floating-sel-anchor float))
         (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
-        (set! background-colors (gimp-image-get-colormap secondary-image))
+        (set! background-colors (script-fu-comic-extract-colormap (gimp-image-get-colormap secondary-image)))
         (gimp-image-remove-layer secondary-image secondary-layer)
         (gimp-image-delete secondary-image)
+#+end_src
 
+Here we remove excess colors.  We always add black and white to the
+final palette so we can remove them from the face and background
+colors to prevent duplicates.
+
+If there are background colors which are too close to face colors,
+then in the final indexing run those colors may be used on the face.
+To prevent this, we determine remove any background colors that are
+"too close" to any face colors.  We do this by computing the distance
+between the colors in 3d RGB space.  We define "too close" as being
+less than half the minimum distance between face colors, since our
+intent is that no background colors will get "between" face colors in
+the palette.
+
+#+name: prune-colors
+#+begin_src scheme
+      ;; prune excess colors
+      (let* ((prune-range 255)
+             (black '(0 0 0))
+             (white '(255 255 255))
+             (c1 face-colors)
+             (c2 '()))
+        ;; remove black and white from face colors
+        (set! face-colors (foldr (lambda (x y)
+                                   (if (or (equal? x black)
+                                           (equal? x white))
+                                       x
+                                       (cons y x)))
+                                 '()
+                                 face-colors))
+        ;; find prune range
+        (while (not (null? c1))
+               (set! c2 (cdr c1))
+               (while (not (null? c2))
+                      (set! prune-range (min (script-fu-comic-dist (car c1) (car c2)) prune-range))
+                      (set! c2 (cdr c2)))
+               (set! c1 (cdr c1)))
+        (set! prune-range (/ prune-range 2))
+
+        ;; remove black, white and any colors within prune-range of face colors from background colors
+        (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
+                                         (if (or (equal? y black)
+                                                 (equal? y white)
+                                                 (any? (lambda (z) ; z is face point
+                                                         (< (script-fu-comic-dist y z) prune-range))
+                                                       face-colors))
+                                             x
+                                             (cons y x)))
+                                       '()
+                                       background-colors)))
+#+end_src
+
+Finally we merge the lists of colors into the final palette and index
+the whole image with it.  While building the palette we add black and
+white and label the colors.
+
+Once we have the palette we can do the final indexing run.
+
+#+name: build-palette-and-index
+#+begin_src scheme
+        ;; combine colors in new palette
         (gimp-selection-none image)
-        (let ((palette-name (car (gimp-palette-new "indexed")))
+        (let ((palette-name (car (gimp-palette-new "comic")))
               (index 0))
-          (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) '(0 0 0))
-          (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) '(255 255 255))
-          (while (< index num-face-colors)
-                 (gimp-palette-add-entry palette-name
-                                         (string-append "f" (number->string index))
-                                         (list (aref (cadr face-colors) (+ 0 (* index 3)))
-                                               (aref (cadr face-colors) (+ 1 (* index 3)))
-                                               (aref (cadr face-colors) (+ 2 (* index 3)))))
-                 (set! index (+ index 1)))
+
+          (gimp-palette-add-entry palette-name "m0" '(0 0 0))
+          (gimp-palette-add-entry palette-name "m1" '(255 255 255))
+
+          (for-each (lambda (x)
+                      (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) x)
+                      (set! index (+ index 1)))
+                    face-colors)
           (set! index 0)
-          (while (< index num-background-colors)
-                 (gimp-palette-add-entry palette-name
-                                         (string-append "b" (number->string index))
-                                         (list (aref (cadr background-colors) (+ 0 (* index 3)))
-                                               (aref (cadr background-colors) (+ 1 (* index 3)))
-                                               (aref (cadr background-colors) (+ 2 (* index 3)))))
-                 (set! index (+ index 1)))
-          (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name))))
+          (for-each (lambda (x)
+                      (gimp-palette-add-entry palette-name (string-append "b" (number->string index)) x)
+                      (set! index (+ index 1)))
+                    background-colors)
+          (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name)
+          (gimp-palette-delete palette-name)))
+#+end_src
+These are some helper functions used while merging the colors found
+during the two indexing runs to form the final palette.
+
+#+name: helpers
+#+begin_src scheme
+  (define (script-fu-comic-dist a b)
+    "Compute distance between three dimensional points A and B"
+    (sqrt (+  (expt (- (nth 0 b) (nth 0 a)) 2)
+              (expt (- (nth 1 b) (nth 1 a)) 2)
+              (expt (- (nth 2 b) (nth 2 a)) 2))))
+
+  (define (script-fu-comic-extract-colormap colormap)
+    "Convert a COLORMAP into a list of colors"
+    (let ((index 0)
+          (colors '()))
+      (while (< index (/ (car colormap) 3))
+             (set! colors (cons
+                           (list (aref (cadr colormap) (+ 0 (* index 3)))
+                                 (aref (cadr colormap) (+ 1 (* index 3)))
+                                 (aref (cadr colormap) (+ 2 (* index 3))))
+                           colors))
+             (set! index (+ index 1)))
+      colors))
+
+  (define (any? pred lst)
+  "True if PRED is true for any item in the LST"
+    (let ((item lst)
+          (ret #f))
+      (while (not (null? item))
+             (if (apply pred (list (car item)))
+                 (begin (set! item nil)
+                        (set! ret #t))
+                 (set! item (cdr item))))
+      ret))
 #+end_src
 
 **** full                                                          :noexport:
@@ -476,6 +583,9 @@ operation.
   ;; Comic book filter for GIMP.  Find documentation at https://github.com/ianxm/gimp-comic-book
 
   <<license>>
+
+
+  <<compute-dist>>
 
   <<convert-comic-book>>
 
