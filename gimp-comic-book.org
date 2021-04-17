@@ -478,40 +478,41 @@ the palette.
 
 #+name: prune-colors
 #+begin_src scheme
-      ;; prune excess colors
-      (let* ((prune-range 255)
-             (black '(0 0 0))
-             (white '(255 255 255))
-             (c1 face-colors)
-             (c2 '()))
-        ;; remove black and white from face colors
-        (set! face-colors (foldr (lambda (x y)
-                                   (if (or (equal? x black)
-                                           (equal? x white))
-                                       x
-                                       (cons y x)))
-                                 '()
-                                 face-colors))
-        ;; find prune range
-        (while (not (null? c1))
-               (set! c2 (cdr c1))
-               (while (not (null? c2))
-                      (set! prune-range (min (script-fu-comic-dist (car c1) (car c2)) prune-range))
-                      (set! c2 (cdr c2)))
-               (set! c1 (cdr c1)))
-        (set! prune-range (/ prune-range 2))
+  ;; prune excess colors
+  (let* ((prune-range 255)
+         (black '(0 0 0))
+         (white '(255 255 255))
+         (c1 face-colors)
+         (c2 '()))
+    ;; find prune range
+    (while (not (null? c1))
+           (set! c2 (cdr c1))
+           (while (not (null? c2))
+                  (set! prune-range (min (script-fu-comic-dist (car c1) (car c2)) prune-range))
+                  (set! c2 (cdr c2)))
+           (set! c1 (cdr c1)))
+    (set! prune-range (/ prune-range 2))
 
-        ;; remove black, white and any colors within prune-range of face colors from background colors
-        (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
-                                         (if (or (equal? y black)
-                                                 (equal? y white)
-                                                 (any? (lambda (z) ; z is face point
-                                                         (< (script-fu-comic-dist y z) prune-range))
-                                                       face-colors))
-                                             x
-                                             (cons y x)))
-                                       '()
-                                       background-colors)))
+    ;; remove black and white from face colors
+    (set! face-colors (foldr (lambda (x y)
+                               (if (or (< (script-fu-comic-dist y black) (/ prune-range 2))
+                                       (< (script-fu-comic-dist y white) (/ prune-range 2)))
+                                   x
+                                   (cons y x)))
+                             '()
+                             face-colors))
+
+    ;; remove black, white and any colors within prune-range of face colors from background colors
+    (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
+                                     (if (or (< (script-fu-comic-dist y black) (/ prune-range 2))
+                                             (< (script-fu-comic-dist y white) (/ prune-range 2))
+                                             (any? (lambda (z) ; z is face point
+                                                     (< (script-fu-comic-dist y z) prune-range))
+                                                   face-colors))
+                                         x
+                                         (cons y x)))
+                                   '()
+                                   background-colors)))
 #+end_src
 
 Finally we merge the lists of colors into the final palette and index
@@ -585,10 +586,9 @@ during the two indexing runs to form the final palette.
   <<license>>
 
 
-  <<compute-dist>>
-
   <<convert-comic-book>>
 
+  <<helpers>>
 
   <<register-comic-book>>
 #+end_src
