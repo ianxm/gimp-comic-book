@@ -1,29 +1,29 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org4cf9369)
-    1.  [Overview](#org1b5ecf1)
-    2.  [Example](#orgb381e0a)
-    3.  [Filter](#org315804f)
-        1.  [General Idea](#orgc65f765)
-        2.  [Steps](#org991cbdd)
-        3.  [Script](#orga24c90d)
-    4.  [Previous Attemps](#orgbcadce3)
-        1.  [Sketch A](#orgbcac323)
-        2.  [Sketch B](#org1e3b962)
-        3.  [Comic Book A](#orgb82c5b7)
-        4.  [Comic Book B](#org051f05a)
-    5.  [References](#org4a98d1b)
-2.  [Literate Programming](#org6b45ce7)
+1.  [Comic Book Filter](#org75894ee)
+    1.  [Overview](#org995a479)
+    2.  [Example](#orge195db0)
+    3.  [Filter](#org14ee0dd)
+        1.  [General Idea](#org9dbb744)
+        2.  [Steps](#orga286467)
+        3.  [Script](#orgbcdf7fe)
+    4.  [Previous Attemps](#org2aaf85c)
+        1.  [Sketch A](#orgfde1527)
+        2.  [Sketch B](#org4c3f51d)
+        3.  [Comic Book A](#org8f98ad9)
+        4.  [Comic Book B](#org5759339)
+    5.  [References](#orgdd1e931)
+2.  [Literate Programming](#orgcad849a)
 
 
 
-<a id="org4cf9369"></a>
+<a id="org75894ee"></a>
 
 # Comic Book Filter
 
 
-<a id="org1b5ecf1"></a>
+<a id="org995a479"></a>
 
 ## Overview
 
@@ -39,7 +39,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="orgb381e0a"></a>
+<a id="orge195db0"></a>
 
 ## Example
 
@@ -60,12 +60,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org315804f"></a>
+<a id="org14ee0dd"></a>
 
 ## Filter
 
 
-<a id="orgc65f765"></a>
+<a id="org9dbb744"></a>
 
 ### General Idea
 
@@ -84,7 +84,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org991cbdd"></a>
+<a id="orga286467"></a>
 
 ### Steps
 
@@ -112,7 +112,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="orga24c90d"></a>
+<a id="orgbcdf7fe"></a>
 
 ### Script
 
@@ -448,7 +448,7 @@ into a single script for GIMP.
               <<prune-colors>>
         
               <<build-palette-and-index>>
-              )
+              ))
     
     First we index only the selected part of the image (allowing up to
     `Face Colors` colors) and save the chosen colors.  Then we index the
@@ -496,34 +496,37 @@ into a single script for GIMP.
     the palette.
     
         ;; prune excess colors
-        (let* ((prune-range 255)
+        (let* ((face-prune-range 255)
+               (bw-prune-range 255)
                (black '(0 0 0))
                (white '(255 255 255))
                (c1 face-colors)
                (c2 '()))
-          ;; remove black and white from face colors
-          (set! face-colors (foldr (lambda (x y)
-                                     (if (or (equal? x black)
-                                             (equal? x white))
-                                         x
-                                         (cons y x)))
-                                   '()
-                                   face-colors))
           ;; find prune range
           (while (not (null? c1))
                  (set! c2 (cdr c1))
                  (while (not (null? c2))
-                        (set! prune-range (min (script-fu-comic-dist (car c1) (car c2)) prune-range))
+                        (set! face-prune-range (min (script-fu-comic-dist (car c1) (car c2)) face-prune-range))
                         (set! c2 (cdr c2)))
                  (set! c1 (cdr c1)))
-          (set! prune-range (/ prune-range 2))
+          (set! face-prune-range (/ face-prune-range 2))
+          (set! bw-prune-range (/ face-prune-range 8))
+        
+          ;; remove black and white from face colors
+          (set! face-colors (foldr (lambda (x y)
+                                     (if (or (< (script-fu-comic-dist y black) bw-prune-range)
+                                             (< (script-fu-comic-dist y white) bw-prune-range))
+                                         x
+                                         (cons y x)))
+                                   '()
+                                   face-colors))
         
           ;; remove black, white and any colors within prune-range of face colors from background colors
           (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
-                                           (if (or (equal? y black)
-                                                   (equal? y white)
+                                           (if (or (< (script-fu-comic-dist y black) bw-prune-range)
+                                                   (< (script-fu-comic-dist y white) bw-prune-range)
                                                    (any? (lambda (z) ; z is face point
-                                                           (< (script-fu-comic-dist y z) prune-range))
+                                                           (< (script-fu-comic-dist y z) face-prune-range))
                                                          face-colors))
                                                x
                                                (cons y x)))
@@ -554,7 +557,7 @@ into a single script for GIMP.
                       (set! index (+ index 1)))
                     background-colors)
           (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name)
-          (gimp-palette-delete palette-name)))
+          (gimp-palette-delete palette-name))
     
     These are some helper functions used while merging the colors found
     during the two indexing runs to form the final palette.
@@ -590,7 +593,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="orgbcadce3"></a>
+<a id="org2aaf85c"></a>
 
 ## Previous Attemps
 
@@ -598,7 +601,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgbcac323"></a>
+<a id="orgfde1527"></a>
 
 ### Sketch A
 
@@ -628,7 +631,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org1e3b962"></a>
+<a id="org4c3f51d"></a>
 
 ### Sketch B
 
@@ -673,7 +676,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orgb82c5b7"></a>
+<a id="org8f98ad9"></a>
 
 ### Comic Book A
 
@@ -719,7 +722,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org051f05a"></a>
+<a id="org5759339"></a>
 
 ### Comic Book B
 
@@ -752,7 +755,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org4a98d1b"></a>
+<a id="orgdd1e931"></a>
 
 ## References
 
@@ -761,7 +764,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org6b45ce7"></a>
+<a id="orgcad849a"></a>
 
 # Literate Programming
 

@@ -425,7 +425,7 @@ runs, which will be described in greater details in the sections below.
         <<prune-colors>>
 
         <<build-palette-and-index>>
-        )
+        ))
 #+end_src
 
 First we index only the selected part of the image (allowing up to
@@ -479,7 +479,8 @@ the palette.
 #+name: prune-colors
 #+begin_src scheme
   ;; prune excess colors
-  (let* ((prune-range 255)
+  (let* ((face-prune-range 255)
+         (bw-prune-range 255)
          (black '(0 0 0))
          (white '(255 255 255))
          (c1 face-colors)
@@ -488,15 +489,16 @@ the palette.
     (while (not (null? c1))
            (set! c2 (cdr c1))
            (while (not (null? c2))
-                  (set! prune-range (min (script-fu-comic-dist (car c1) (car c2)) prune-range))
+                  (set! face-prune-range (min (script-fu-comic-dist (car c1) (car c2)) face-prune-range))
                   (set! c2 (cdr c2)))
            (set! c1 (cdr c1)))
-    (set! prune-range (/ prune-range 2))
+    (set! face-prune-range (/ face-prune-range 2))
+    (set! bw-prune-range (/ face-prune-range 8))
 
     ;; remove black and white from face colors
     (set! face-colors (foldr (lambda (x y)
-                               (if (or (< (script-fu-comic-dist y black) (/ prune-range 2))
-                                       (< (script-fu-comic-dist y white) (/ prune-range 2)))
+                               (if (or (< (script-fu-comic-dist y black) bw-prune-range)
+                                       (< (script-fu-comic-dist y white) bw-prune-range))
                                    x
                                    (cons y x)))
                              '()
@@ -504,10 +506,10 @@ the palette.
 
     ;; remove black, white and any colors within prune-range of face colors from background colors
     (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
-                                     (if (or (< (script-fu-comic-dist y black) (/ prune-range 2))
-                                             (< (script-fu-comic-dist y white) (/ prune-range 2))
+                                     (if (or (< (script-fu-comic-dist y black) bw-prune-range)
+                                             (< (script-fu-comic-dist y white) bw-prune-range)
                                              (any? (lambda (z) ; z is face point
-                                                     (< (script-fu-comic-dist y z) prune-range))
+                                                     (< (script-fu-comic-dist y z) face-prune-range))
                                                    face-colors))
                                          x
                                          (cons y x)))
@@ -523,25 +525,25 @@ Once we have the palette we can do the final indexing run.
 
 #+name: build-palette-and-index
 #+begin_src scheme
-        ;; combine colors in new palette
-        (gimp-selection-none image)
-        (let ((palette-name (car (gimp-palette-new "comic")))
-              (index 0))
+  ;; combine colors in new palette
+  (gimp-selection-none image)
+  (let ((palette-name (car (gimp-palette-new "comic")))
+        (index 0))
 
-          (gimp-palette-add-entry palette-name "m0" '(0 0 0))
-          (gimp-palette-add-entry palette-name "m1" '(255 255 255))
+    (gimp-palette-add-entry palette-name "m0" '(0 0 0))
+    (gimp-palette-add-entry palette-name "m1" '(255 255 255))
 
-          (for-each (lambda (x)
-                      (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) x)
-                      (set! index (+ index 1)))
-                    face-colors)
-          (set! index 0)
-          (for-each (lambda (x)
-                      (gimp-palette-add-entry palette-name (string-append "b" (number->string index)) x)
-                      (set! index (+ index 1)))
-                    background-colors)
-          (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name)
-          (gimp-palette-delete palette-name)))
+    (for-each (lambda (x)
+                (gimp-palette-add-entry palette-name (string-append "f" (number->string index)) x)
+                (set! index (+ index 1)))
+              face-colors)
+    (set! index 0)
+    (for-each (lambda (x)
+                (gimp-palette-add-entry palette-name (string-append "b" (number->string index)) x)
+                (set! index (+ index 1)))
+              background-colors)
+    (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name)
+    (gimp-palette-delete palette-name))
 #+end_src
 These are some helper functions used while merging the colors found
 during the two indexing runs to form the final palette.

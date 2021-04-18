@@ -16,8 +16,6 @@
 ;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
-
 (define (script-fu-comic-book image background-layer
                               num-face-colors num-background-colors smoothness
                               blur-cycles lightness detail fine-detail)
@@ -145,34 +143,37 @@
             (gimp-image-delete secondary-image)
       
             ;; prune excess colors
-            (let* ((prune-range 255)
+            (let* ((face-prune-range 255)
+                   (bw-prune-range 255)
                    (black '(0 0 0))
                    (white '(255 255 255))
                    (c1 face-colors)
                    (c2 '()))
-              ;; remove black and white from face colors
-              (set! face-colors (foldr (lambda (x y)
-                                         (if (or (equal? x black)
-                                                 (equal? x white))
-                                             x
-                                             (cons y x)))
-                                       '()
-                                       face-colors))
               ;; find prune range
               (while (not (null? c1))
                      (set! c2 (cdr c1))
                      (while (not (null? c2))
-                            (set! prune-range (min (script-fu-comic-dist (car c1) (car c2)) prune-range))
+                            (set! face-prune-range (min (script-fu-comic-dist (car c1) (car c2)) face-prune-range))
                             (set! c2 (cdr c2)))
                      (set! c1 (cdr c1)))
-              (set! prune-range (/ prune-range 2))
+              (set! face-prune-range (/ face-prune-range 2))
+              (set! bw-prune-range (/ face-prune-range 8))
+            
+              ;; remove black and white from face colors
+              (set! face-colors (foldr (lambda (x y)
+                                         (if (or (< (script-fu-comic-dist y black) bw-prune-range)
+                                                 (< (script-fu-comic-dist y white) bw-prune-range))
+                                             x
+                                             (cons y x)))
+                                       '()
+                                       face-colors))
             
               ;; remove black, white and any colors within prune-range of face colors from background colors
               (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
-                                               (if (or (equal? y black)
-                                                       (equal? y white)
+                                               (if (or (< (script-fu-comic-dist y black) bw-prune-range)
+                                                       (< (script-fu-comic-dist y white) bw-prune-range)
                                                        (any? (lambda (z) ; z is face point
-                                                               (< (script-fu-comic-dist y z) prune-range))
+                                                               (< (script-fu-comic-dist y z) face-prune-range))
                                                              face-colors))
                                                    x
                                                    (cons y x)))
@@ -197,8 +198,8 @@
                           (set! index (+ index 1)))
                         background-colors)
               (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name)
-              (gimp-palette-delete palette-name)))
-            )
+              (gimp-palette-delete palette-name))
+            ))
       
       (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
                            (+ 1 smoothness (floor (/ (max (car (gimp-image-width image)) (car (gimp-image-height image))) 800)))
@@ -227,6 +228,35 @@
   ;; (gimp-image-undo-group-end image)
   (gimp-displays-flush))
 
+(define (script-fu-comic-dist a b)
+  "Compute distance between three dimensional points A and B"
+  (sqrt (+  (expt (- (nth 0 b) (nth 0 a)) 2)
+            (expt (- (nth 1 b) (nth 1 a)) 2)
+            (expt (- (nth 2 b) (nth 2 a)) 2))))
+
+(define (script-fu-comic-extract-colormap colormap)
+  "Convert a COLORMAP into a list of colors"
+  (let ((index 0)
+        (colors '()))
+    (while (< index (/ (car colormap) 3))
+           (set! colors (cons
+                         (list (aref (cadr colormap) (+ 0 (* index 3)))
+                               (aref (cadr colormap) (+ 1 (* index 3)))
+                               (aref (cadr colormap) (+ 2 (* index 3))))
+                         colors))
+           (set! index (+ index 1)))
+    colors))
+
+(define (any? pred lst)
+"True if PRED is true for any item in the LST"
+  (let ((item lst)
+        (ret #f))
+    (while (not (null? item))
+           (if (apply pred (list (car item)))
+               (begin (set! item nil)
+                      (set! ret #t))
+               (set! item (cdr item))))
+    ret))
 
 (script-fu-register
  "script-fu-comic-book"                   ; func name
