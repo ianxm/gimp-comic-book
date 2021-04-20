@@ -1,29 +1,29 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org75894ee)
-    1.  [Overview](#org995a479)
-    2.  [Example](#orge195db0)
-    3.  [Filter](#org14ee0dd)
-        1.  [General Idea](#org9dbb744)
-        2.  [Steps](#orga286467)
-        3.  [Script](#orgbcdf7fe)
-    4.  [Previous Attemps](#org2aaf85c)
-        1.  [Sketch A](#orgfde1527)
-        2.  [Sketch B](#org4c3f51d)
-        3.  [Comic Book A](#org8f98ad9)
-        4.  [Comic Book B](#org5759339)
-    5.  [References](#orgdd1e931)
-2.  [Literate Programming](#orgcad849a)
+1.  [Comic Book Filter](#org443a816)
+    1.  [Overview](#org3962f78)
+    2.  [Example](#orgd004bb3)
+    3.  [Filter](#orge12d555)
+        1.  [General Idea](#org79ed3da)
+        2.  [Steps](#org0fcdcda)
+        3.  [Script](#org4dd4375)
+    4.  [Previous Attemps](#org4a20871)
+        1.  [Sketch A](#orge559ffd)
+        2.  [Sketch B](#org94caff1)
+        3.  [Comic Book A](#orgec2be7b)
+        4.  [Comic Book B](#org38d6b31)
+    5.  [References](#org6c3b8e7)
+2.  [Literate Programming](#org6b30d35)
 
 
 
-<a id="org75894ee"></a>
+<a id="org443a816"></a>
 
 # Comic Book Filter
 
 
-<a id="org995a479"></a>
+<a id="org3962f78"></a>
 
 ## Overview
 
@@ -39,7 +39,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="orge195db0"></a>
+<a id="orgd004bb3"></a>
 
 ## Example
 
@@ -60,12 +60,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org14ee0dd"></a>
+<a id="orge12d555"></a>
 
 ## Filter
 
 
-<a id="org9dbb744"></a>
+<a id="org79ed3da"></a>
 
 ### General Idea
 
@@ -84,7 +84,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orga286467"></a>
+<a id="org0fcdcda"></a>
 
 ### Steps
 
@@ -112,7 +112,7 @@ The final script is [here](scripts/comic-book.scm).
     -   merge layers
 
 
-<a id="orgbcdf7fe"></a>
+<a id="org4dd4375"></a>
 
 ### Script
 
@@ -289,13 +289,18 @@ into a single script for GIMP.
     
     We duplicate the background and add the new layer to the top.  We
     lighten the new layer with `curves` to wash out any glare or shiny
-    spots so they aren't picked up by the edge detection.  The main work
-    is done by the Sobel Edge Detection filter, which we run on the new
-    layer.  We desaturate to convert to greyscale since we don't want
-    color info.  Then we adjust levels in the trace layer to stengthen the
-    most significant lines and dim the noise.  We use the `Fine Detail`
-    parameter to control this adjustment.  If `Fine Detail` is turned down
-    to zero, we skip this step entirely.
+    spots so they aren't picked up by the edge detection.  We also add a
+    layer mask to cut a hole in the layer where there are faces to prevent
+    the trace layer from outlining teeth or filling in eyes, both of which
+    it has a tendency to do and both are a bad look.  We use a gradient to
+    blend the layer out so there aren't sharp edges.
+    
+    The main work is done by the Sobel Edge Detection filter, which we run
+    on the new layer.  We desaturate to convert to greyscale since we
+    don't want color info.  Then we adjust levels in the trace layer to
+    stengthen the most significant lines and dim the noise.  We use the
+    `Fine Detail` parameter to control this adjustment.  If `Fine Detail`
+    is turned down to zero, we skip this step entirely.
     
     Finally we invert the trace layer and set its mode to `MULTIPLY` so
     that the lines show up overlayed on the background.
@@ -307,8 +312,30 @@ into a single script for GIMP.
         
           (gimp-drawable-curves-spline trace-layer HISTOGRAM-VALUE 6 (list->vector (list
                                                                                     0.0 0.0
-                                                                                    0.5 0.875
+                                                                                    0.5 0.7
                                                                                     1.0 1.0)))
+        
+          (let ((mask (car (gimp-layer-create-mask trace-layer ADD-MASK-WHITE)))
+                (p-bg (car (gimp-context-get-background)))
+                (p-fg (car (gimp-context-get-foreground)))
+                (p-metric (car (gimp-context-get-distance-metric)))
+                (p-grad (car (gimp-context-get-gradient))))
+            (gimp-image-select-item image CHANNEL-OP-ADD selection)
+            (gimp-layer-add-mask trace-layer mask)
+            (gimp-layer-set-edit-mask trace-layer TRUE)
+            (gimp-context-set-background '(0 0 0))
+            (gimp-context-set-foreground '(255 255 255))
+            (gimp-context-set-distance-metric 0)
+            (gimp-context-set-gradient-fg-bg-rgb)
+            (gimp-drawable-edit-gradient-fill mask GRADIENT-SHAPEBURST-SPHERICAL 0 FALSE 1 0 TRUE 0 0 1 1)
+            (gimp-selection-none image)
+            ;; revert settings
+            (gimp-layer-set-edit-mask trace-layer FALSE)
+            (gimp-context-set-background p-bg)
+            (gimp-context-set-foreground p-fg)
+            (gimp-context-set-distance-metric p-metric)
+            (gimp-context-set-gradient p-grad))
+        
           (gimp-drawable-desaturate trace-layer DESATURATE-LUMINANCE)
           (plug-in-edge RUN-NONINTERACTIVE image trace-layer 1 2 0)
         
@@ -593,7 +620,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org2aaf85c"></a>
+<a id="org4a20871"></a>
 
 ## Previous Attemps
 
@@ -601,7 +628,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgfde1527"></a>
+<a id="orge559ffd"></a>
 
 ### Sketch A
 
@@ -631,7 +658,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org4c3f51d"></a>
+<a id="org94caff1"></a>
 
 ### Sketch B
 
@@ -676,7 +703,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org8f98ad9"></a>
+<a id="orgec2be7b"></a>
 
 ### Comic Book A
 
@@ -722,7 +749,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org5759339"></a>
+<a id="org38d6b31"></a>
 
 ### Comic Book B
 
@@ -755,7 +782,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgdd1e931"></a>
+<a id="org6c3b8e7"></a>
 
 ## References
 
@@ -764,7 +791,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="orgcad849a"></a>
+<a id="org6b30d35"></a>
 
 # Literate Programming
 

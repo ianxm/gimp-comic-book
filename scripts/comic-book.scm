@@ -65,8 +65,30 @@
       
         (gimp-drawable-curves-spline trace-layer HISTOGRAM-VALUE 6 (list->vector (list
                                                                                   0.0 0.0
-                                                                                  0.5 0.875
+                                                                                  0.5 0.7
                                                                                   1.0 1.0)))
+      
+        (let ((mask (car (gimp-layer-create-mask trace-layer ADD-MASK-WHITE)))
+              (p-bg (car (gimp-context-get-background)))
+              (p-fg (car (gimp-context-get-foreground)))
+              (p-metric (car (gimp-context-get-distance-metric)))
+              (p-grad (car (gimp-context-get-gradient))))
+          (gimp-image-select-item image CHANNEL-OP-ADD selection)
+          (gimp-layer-add-mask trace-layer mask)
+          (gimp-layer-set-edit-mask trace-layer TRUE)
+          (gimp-context-set-background '(0 0 0))
+          (gimp-context-set-foreground '(255 255 255))
+          (gimp-context-set-distance-metric 0)
+          (gimp-context-set-gradient-fg-bg-rgb)
+          (gimp-drawable-edit-gradient-fill mask GRADIENT-SHAPEBURST-SPHERICAL 0 FALSE 1 0 TRUE 0 0 1 1)
+          (gimp-selection-none image)
+          ;; revert settings
+          (gimp-layer-set-edit-mask trace-layer FALSE)
+          (gimp-context-set-background p-bg)
+          (gimp-context-set-foreground p-fg)
+          (gimp-context-set-distance-metric p-metric)
+          (gimp-context-set-gradient p-grad))
+      
         (gimp-drawable-desaturate trace-layer DESATURATE-LUMINANCE)
         (plug-in-edge RUN-NONINTERACTIVE image trace-layer 1 2 0)
       

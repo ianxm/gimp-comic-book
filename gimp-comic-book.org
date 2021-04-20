@@ -251,13 +251,18 @@ picks up some details that the sketch layer misses.
 
 We duplicate the background and add the new layer to the top.  We
 lighten the new layer with =curves= to wash out any glare or shiny
-spots so they aren't picked up by the edge detection.  The main work
-is done by the Sobel Edge Detection filter, which we run on the new
-layer.  We desaturate to convert to greyscale since we don't want
-color info.  Then we adjust levels in the trace layer to stengthen the
-most significant lines and dim the noise.  We use the =Fine Detail=
-parameter to control this adjustment.  If =Fine Detail= is turned down
-to zero, we skip this step entirely.
+spots so they aren't picked up by the edge detection.  We also add a
+layer mask to cut a hole in the layer where there are faces to prevent
+the trace layer from outlining teeth or filling in eyes, both of which
+it has a tendency to do and both are a bad look.  We use a gradient to
+blend the layer out so there aren't sharp edges.
+
+The main work is done by the Sobel Edge Detection filter, which we run
+on the new layer.  We desaturate to convert to greyscale since we
+don't want color info.  Then we adjust levels in the trace layer to
+stengthen the most significant lines and dim the noise.  We use the
+=Fine Detail= parameter to control this adjustment.  If =Fine Detail=
+is turned down to zero, we skip this step entirely.
 
 Finally we invert the trace layer and set its mode to =MULTIPLY= so
 that the lines show up overlayed on the background.
@@ -271,8 +276,30 @@ that the lines show up overlayed on the background.
 
     (gimp-drawable-curves-spline trace-layer HISTOGRAM-VALUE 6 (list->vector (list
                                                                               0.0 0.0
-                                                                              0.5 0.875
+                                                                              0.5 0.7
                                                                               1.0 1.0)))
+
+    (let ((mask (car (gimp-layer-create-mask trace-layer ADD-MASK-WHITE)))
+          (p-bg (car (gimp-context-get-background)))
+          (p-fg (car (gimp-context-get-foreground)))
+          (p-metric (car (gimp-context-get-distance-metric)))
+          (p-grad (car (gimp-context-get-gradient))))
+      (gimp-image-select-item image CHANNEL-OP-ADD selection)
+      (gimp-layer-add-mask trace-layer mask)
+      (gimp-layer-set-edit-mask trace-layer TRUE)
+      (gimp-context-set-background '(0 0 0))
+      (gimp-context-set-foreground '(255 255 255))
+      (gimp-context-set-distance-metric 0)
+      (gimp-context-set-gradient-fg-bg-rgb)
+      (gimp-drawable-edit-gradient-fill mask GRADIENT-SHAPEBURST-SPHERICAL 0 FALSE 1 0 TRUE 0 0 1 1)
+      (gimp-selection-none image)
+      ;; revert settings
+      (gimp-layer-set-edit-mask trace-layer FALSE)
+      (gimp-context-set-background p-bg)
+      (gimp-context-set-foreground p-fg)
+      (gimp-context-set-distance-metric p-metric)
+      (gimp-context-set-gradient p-grad))
+
     (gimp-drawable-desaturate trace-layer DESATURATE-LUMINANCE)
     (plug-in-edge RUN-NONINTERACTIVE image trace-layer 1 2 0)
 
