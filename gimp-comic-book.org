@@ -47,29 +47,6 @@ skin tones.
 
 The final script is [[file:scripts/comic-book.scm][here]].
 
-*** Steps
-- load an image
-  - scale if too small, sharpen if significantly scaled
-  - Colors > Curves (lighten)
-  - Fitlers > Artistic > Softglow
-- trace layer (fine detail)
-  - duplicate layer (on top, trace)
-  - Filters > Edge Detect > Edge (Sobel, 1)
-  - Colors > Desaturate > Desaturate
-  - Colors > Levels
-  - Colors > Invert
-  - set layer mode MULTIPLY
-- sketch layer (detail)
-  - duplicate layer (on top, sketch)
-  - Filters > Artistic > Photocopy
-  - set layer mode MULTIPLY
-- background layer (colors)
-  - Image > Mode > Indexed (n colors)
-  - Filters > Blur > Selective Gaussian Blur (repeat)
-  - Image > Mode > RGB
-  - Colors > Levels
-  - Colors > Hue Saturation
-  - merge layers
 *** Script
 
 The following sections go through the comic book filter script in
@@ -114,6 +91,7 @@ boilerblate except seven of the parameters, which I'll go over now.
 - Lightness :: a higher value results in lighter colors
 - Detail :: a higher value results in more lines
 - Fine Detail :: a higher value results in more thin lines
+- Shading :: a higher value results in more diagonal shading lines
 
 The meaning of the values we set is explained in [[https://docs.gimp.org/2.8/en/gimp-using-script-fu-tutorial-first-script.html][section 3.4.8 of the
 GIMP doc]].
@@ -136,7 +114,8 @@ GIMP doc]].
      SF-ADJUSTMENT "Blur Cycles"          '(1 0 6 1 1 0 1)
      SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
      SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
-     SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0))
+     SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0)
+     SF-ADJUSTMENT "Shading"              '(0.3 0 1 0.1 0.2 2 0))
     (script-fu-menu-register "script-fu-comic-book" "<Image>/Filters/Artistic")
 #+end_src
 **** convert
@@ -184,7 +163,7 @@ Finally we flush the GIMP display to update the image in the buffer.
 #+begin_src scheme :noweb no-export
   (define (script-fu-comic-book image background-layer
                                 num-face-colors num-background-colors smoothness
-                                blur-cycles lightness detail fine-detail)
+                                blur-cycles lightness detail fine-detail shading)
     ;; (gimp-image-undo-group-start image)
 
     (let* ((width (car (gimp-image-width image)))
@@ -227,6 +206,8 @@ Finally we flush the GIMP display to update the image in the buffer.
         <<trace-layer>>
 
         <<sketch-layer>>
+
+        <<shading-layer>>
 
         <<background-layer>>
 
@@ -379,7 +360,7 @@ by the =Lightness= parameter.
   <<comic-index>>
 
   (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                       (+ 1 smoothness (floor (/ (max (car (gimp-image-width image)) (car (gimp-image-height image))) 800)))
+                       (+ 1 smoothness (floor (/ (max width height) 800)))
                        50)
 
   (gimp-image-set-active-layer image sketch-layer)
@@ -391,6 +372,89 @@ by the =Lightness= parameter.
     (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
 #+end_src
 
+Now lets add some shading to give it more depth and more of a comic
+book look.  I copied the technique for generating dashed lines from
+the [[https://www.gimphelp.org/artist_inkpen.html][Inkpen filter]].  The idea is to find the darkest parts of the image
+(using =Threshold=) and add diagonal dashed lines which look like
+hatching to the image.  We use =Hurl= and =Motion Blur= to generate
+the dashed lines and then use the =Threshold= layer to mask it.
+
+This looks really good in many cases, but looks bad if the shading
+covers someone's hair, since anyone would shade in the direction of
+the hair instead of just going diagonally.  I've not found a way to
+prevent this, though.
+
+#+name: shading-layer
+#+begin_src scheme :noweb no-export
+  (when (> shading 0.0001)
+    (let* ((hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
+                                                "" 100 LAYER-MODE-MULTIPLY)))
+           (shading-layer-pre (car (gimp-layer-copy background-layer FALSE)))
+           (dark-layer 0)
+           ;; (shadows-layer 0)
+           (layer-name "light shading")
+           (cutoff shading)
+           (pct 0.5)
+           (length 50))
+      (gimp-image-add-layer image shading-layer-pre 0)
+      (gimp-image-set-active-layer image shading-layer-pre)
+      (gimp-drawable-shadows-highlights shading-layer-pre -40 0)
+      (plug-in-gauss RUN-NONINTERACTIVE image shading-layer-pre 3 3 0)
+      <<shading-step>>
+
+      (set! hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
+                                                "" 100 LAYER-MODE-MULTIPLY)))
+      (set! layer-name "dark shading")
+      (set! cutoff (/ cutoff 2))
+      (set! pct 1.0)
+      (set! length 100)
+      <<shading-step>>
+
+      (gimp-image-remove-layer image shading-layer-pre)
+      ))
+#+end_src
+
+#+name: shading-step
+#+begin_src scheme :noweb no-export
+  (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
+  (gimp-image-add-layer image dark-layer 0)
+  (gimp-image-set-active-layer image dark-layer)
+  (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0.08 cutoff)
+
+  ;; (set! shadows-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
+  ;; (gimp-image-add-layer image shadows-layer 0)
+  ;; (gimp-image-set-active-layer image shadows-layer)
+  ;; (gimp-drawable-extract-component shadows-layer 4)
+  ;; (gimp-drawable-threshold shadows-layer HISTOGRAM-VALUE 0.50 1)
+  ;; (gimp-layer-set-mode shadows-layer LAYER-MODE-MULTIPLY)
+  ;; (set! dark-layer (car (gimp-image-merge-down image shadows-layer EXPAND-AS-NECESSARY)))
+  ;; (gimp-image-set-active-layer image dark-layer)
+
+  (gimp-selection-all image)
+  (gimp-edit-copy dark-layer)
+  (gimp-selection-none image)
+
+  (gimp-image-add-layer image hatching-layer 0)
+  (gimp-image-set-active-layer image hatching-layer)
+  (gimp-item-set-name hatching-layer layer-name)
+  (gimp-drawable-fill hatching-layer FILL-WHITE)
+  (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer pct 1 FALSE 0)
+  (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
+  (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
+  (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
+  (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 0.98 1)
+
+  (let ((mask (car (gimp-layer-create-mask hatching-layer ADD-MASK-WHITE)))
+        (float 0))
+    (gimp-layer-add-mask hatching-layer mask)
+    (gimp-layer-set-edit-mask hatching-layer TRUE)
+    (set! float (car (gimp-edit-paste mask TRUE)))
+    (gimp-floating-sel-anchor float))
+
+  (gimp-image-remove-layer image dark-layer)
+  (gimp-layer-set-mode hatching-layer LAYER-MODE-MULTIPLY)
+#+end_src
+
 When we indexed the colors the overlays may have been lightened, but
 we want the overlay lines to be black, so we'll go though and darken
 them here.  This is at the end here because we have to do it after the
@@ -398,7 +462,7 @@ image is converted back to RGB and after the "clean up" blurring while
 the image was indexed.
 
 #+name: darken-overlays
-#+begin_src scheme
+#+begin_src scheme :noweb no-export
   (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
   (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 #+end_src
@@ -461,28 +525,28 @@ in a secondary image.
 
 #+name: get-colormaps
 #+begin_src scheme
-        ;; index face colors
-        (gimp-image-select-item image CHANNEL-OP-ADD selection)
-        (gimp-edit-copy background-layer)
-        (gimp-selection-all secondary-image)
-        (gimp-edit-clear secondary-layer)
-        (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
-          (gimp-floating-sel-anchor float))
-        (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-face-colors FALSE TRUE "")
-        (set! face-colors (script-fu-comic-extract-colormap (gimp-image-get-colormap secondary-image)))
-        (gimp-image-convert-rgb secondary-image)
+  ;; index face colors
+  (gimp-image-select-item image CHANNEL-OP-ADD selection)
+  (gimp-edit-copy background-layer)
+  (gimp-selection-all secondary-image)
+  (gimp-edit-clear secondary-layer)
+  (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
+    (gimp-floating-sel-anchor float))
+  (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-face-colors FALSE TRUE "")
+  (set! face-colors (script-fu-comic-extract-colormap (gimp-image-get-colormap secondary-image)))
+  (gimp-image-convert-rgb secondary-image)
 
-        ;; index background colors
-        (gimp-selection-invert image)
-        (gimp-edit-copy background-layer)
-        (gimp-selection-all secondary-image)
-        (gimp-edit-clear secondary-layer)
-        (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
-          (gimp-floating-sel-anchor float))
-        (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
-        (set! background-colors (script-fu-comic-extract-colormap (gimp-image-get-colormap secondary-image)))
-        (gimp-image-remove-layer secondary-image secondary-layer)
-        (gimp-image-delete secondary-image)
+  ;; index background colors
+  (gimp-selection-invert image)
+  (gimp-edit-copy background-layer)
+  (gimp-selection-all secondary-image)
+  (gimp-edit-clear secondary-layer)
+  (let ((float (car (gimp-edit-paste secondary-layer FALSE))))
+    (gimp-floating-sel-anchor float))
+  (gimp-image-convert-indexed secondary-image CONVERT-DITHER-NONE CONVERT-PALETTE-GENERATE num-background-colors FALSE TRUE "")
+  (set! background-colors (script-fu-comic-extract-colormap (gimp-image-get-colormap secondary-image)))
+  (gimp-image-remove-layer secondary-image secondary-layer)
+  (gimp-image-delete secondary-image)
 #+end_src
 
 Here we remove excess colors.  We always add black and white to the

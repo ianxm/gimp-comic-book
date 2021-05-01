@@ -18,7 +18,7 @@
 
 (define (script-fu-comic-book image background-layer
                               num-face-colors num-background-colors smoothness
-                              blur-cycles lightness detail fine-detail)
+                              blur-cycles lightness detail fine-detail shading)
   ;; (gimp-image-undo-group-start image)
 
   (let* ((width (car (gimp-image-width image)))
@@ -63,31 +63,27 @@
         (gimp-item-set-name trace-layer "trace")
         (gimp-image-set-active-layer image trace-layer)
       
-        (gimp-drawable-curves-spline trace-layer HISTOGRAM-VALUE 6 (list->vector (list
-                                                                                  0.0 0.0
-                                                                                  0.5 0.7
-                                                                                  1.0 1.0)))
-      
-        (let ((mask (car (gimp-layer-create-mask trace-layer ADD-MASK-WHITE)))
-              (p-bg (car (gimp-context-get-background)))
-              (p-fg (car (gimp-context-get-foreground)))
-              (p-metric (car (gimp-context-get-distance-metric)))
-              (p-grad (car (gimp-context-get-gradient))))
-          (gimp-image-select-item image CHANNEL-OP-ADD selection)
-          (gimp-layer-add-mask trace-layer mask)
-          (gimp-layer-set-edit-mask trace-layer TRUE)
-          (gimp-context-set-background '(0 0 0))
-          (gimp-context-set-foreground '(255 255 255))
-          (gimp-context-set-distance-metric 0)
-          (gimp-context-set-gradient-fg-bg-rgb)
-          (gimp-drawable-edit-gradient-fill mask GRADIENT-SHAPEBURST-SPHERICAL 0 FALSE 1 0 TRUE 0 0 1 1)
-          (gimp-selection-none image)
-          ;; revert settings
-          (gimp-layer-set-edit-mask trace-layer FALSE)
-          (gimp-context-set-background p-bg)
-          (gimp-context-set-foreground p-fg)
-          (gimp-context-set-distance-metric p-metric)
-          (gimp-context-set-gradient p-grad))
+        (when (<> selection -1)
+          (let ((mask (car (gimp-layer-create-mask trace-layer ADD-MASK-WHITE)))
+                (p-bg (car (gimp-context-get-background)))
+                (p-fg (car (gimp-context-get-foreground)))
+                (p-metric (car (gimp-context-get-distance-metric)))
+                (p-grad (car (gimp-context-get-gradient))))
+            (gimp-image-select-item image CHANNEL-OP-ADD selection)
+            (gimp-layer-add-mask trace-layer mask)
+            (gimp-layer-set-edit-mask trace-layer TRUE)
+            (gimp-context-set-background '(0 0 0))
+            (gimp-context-set-foreground '(255 255 255))
+            (gimp-context-set-distance-metric 0)
+            (gimp-context-set-gradient-fg-bg-rgb)
+            (gimp-drawable-edit-gradient-fill mask GRADIENT-SHAPEBURST-SPHERICAL 0 FALSE 1 0 TRUE 0 0 1 1)
+            (gimp-selection-none image)
+            ;; revert settings
+            (gimp-layer-set-edit-mask trace-layer FALSE)
+            (gimp-context-set-background p-bg)
+            (gimp-context-set-foreground p-fg)
+            (gimp-context-set-distance-metric p-metric)
+            (gimp-context-set-gradient p-grad)))
       
         (gimp-drawable-desaturate trace-layer DESATURATE-LUMINANCE)
         (plug-in-edge RUN-NONINTERACTIVE image trace-layer 1 2 0)
@@ -102,7 +98,6 @@
                                 TRUE 1 0 1 TRUE))
         (gimp-drawable-invert trace-layer TRUE)
         (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
-      
 
       (when (> detail 0.0001)
         (gimp-image-add-layer image sketch-layer 0)
@@ -121,6 +116,105 @@
         (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
       
         (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
+
+      (when (> shading 0.0001)
+        (let* ((hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
+                                                    "" 100 LAYER-MODE-MULTIPLY)))
+               (shading-layer-pre (car (gimp-layer-copy background-layer FALSE)))
+               (dark-layer 0)
+               ;; (shadows-layer 0)
+               (layer-name "light shading")
+               (cutoff shading)
+               (pct 0.5)
+               (length 50))
+          (gimp-image-add-layer image shading-layer-pre 0)
+          (gimp-image-set-active-layer image shading-layer-pre)
+          (gimp-drawable-shadows-highlights shading-layer-pre -40 0)
+          (plug-in-gauss RUN-NONINTERACTIVE image shading-layer-pre 3 3 0)
+          (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
+          (gimp-image-add-layer image dark-layer 0)
+          (gimp-image-set-active-layer image dark-layer)
+          (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0.08 cutoff)
+          
+          ;; (set! shadows-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
+          ;; (gimp-image-add-layer image shadows-layer 0)
+          ;; (gimp-image-set-active-layer image shadows-layer)
+          ;; (gimp-drawable-extract-component shadows-layer 4)
+          ;; (gimp-drawable-threshold shadows-layer HISTOGRAM-VALUE 0.50 1)
+          ;; (gimp-layer-set-mode shadows-layer LAYER-MODE-MULTIPLY)
+          ;; (set! dark-layer (car (gimp-image-merge-down image shadows-layer EXPAND-AS-NECESSARY)))
+          ;; (gimp-image-set-active-layer image dark-layer)
+          
+          (gimp-selection-all image)
+          (gimp-edit-copy dark-layer)
+          (gimp-selection-none image)
+          
+          (gimp-image-add-layer image hatching-layer 0)
+          (gimp-image-set-active-layer image hatching-layer)
+          (gimp-item-set-name hatching-layer layer-name)
+          (gimp-drawable-fill hatching-layer FILL-WHITE)
+          (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer pct 1 FALSE 0)
+          (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
+          (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
+          (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
+          (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 0.98 1)
+          
+          (let ((mask (car (gimp-layer-create-mask hatching-layer ADD-MASK-WHITE)))
+                (float 0))
+            (gimp-layer-add-mask hatching-layer mask)
+            (gimp-layer-set-edit-mask hatching-layer TRUE)
+            (set! float (car (gimp-edit-paste mask TRUE)))
+            (gimp-floating-sel-anchor float))
+          
+          (gimp-image-remove-layer image dark-layer)
+          (gimp-layer-set-mode hatching-layer LAYER-MODE-MULTIPLY)
+      
+          (set! hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
+                                                    "" 100 LAYER-MODE-MULTIPLY)))
+          (set! layer-name "dark shading")
+          (set! cutoff (/ cutoff 2))
+          (set! pct 1.0)
+          (set! length 100)
+          (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
+          (gimp-image-add-layer image dark-layer 0)
+          (gimp-image-set-active-layer image dark-layer)
+          (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0.08 cutoff)
+          
+          ;; (set! shadows-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
+          ;; (gimp-image-add-layer image shadows-layer 0)
+          ;; (gimp-image-set-active-layer image shadows-layer)
+          ;; (gimp-drawable-extract-component shadows-layer 4)
+          ;; (gimp-drawable-threshold shadows-layer HISTOGRAM-VALUE 0.50 1)
+          ;; (gimp-layer-set-mode shadows-layer LAYER-MODE-MULTIPLY)
+          ;; (set! dark-layer (car (gimp-image-merge-down image shadows-layer EXPAND-AS-NECESSARY)))
+          ;; (gimp-image-set-active-layer image dark-layer)
+          
+          (gimp-selection-all image)
+          (gimp-edit-copy dark-layer)
+          (gimp-selection-none image)
+          
+          (gimp-image-add-layer image hatching-layer 0)
+          (gimp-image-set-active-layer image hatching-layer)
+          (gimp-item-set-name hatching-layer layer-name)
+          (gimp-drawable-fill hatching-layer FILL-WHITE)
+          (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer pct 1 FALSE 0)
+          (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
+          (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
+          (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
+          (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 0.98 1)
+          
+          (let ((mask (car (gimp-layer-create-mask hatching-layer ADD-MASK-WHITE)))
+                (float 0))
+            (gimp-layer-add-mask hatching-layer mask)
+            (gimp-layer-set-edit-mask hatching-layer TRUE)
+            (set! float (car (gimp-edit-paste mask TRUE)))
+            (gimp-floating-sel-anchor float))
+          
+          (gimp-image-remove-layer image dark-layer)
+          (gimp-layer-set-mode hatching-layer LAYER-MODE-MULTIPLY)
+      
+          (gimp-image-remove-layer image shading-layer-pre)
+          ))
 
       (gimp-image-set-active-layer image background-layer)
       (if (= selection -1)
@@ -224,7 +318,7 @@
             ))
       
       (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                           (+ 1 smoothness (floor (/ (max (car (gimp-image-width image)) (car (gimp-image-height image))) 800)))
+                           (+ 1 smoothness (floor (/ (max width height) 800)))
                            50)
       
       (gimp-image-set-active-layer image sketch-layer)
@@ -296,5 +390,6 @@
  SF-ADJUSTMENT "Blur Cycles"          '(1 0 6 1 1 0 1)
  SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
- SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0))
+ SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0)
+ SF-ADJUSTMENT "Shading"              '(0.3 0 1 0.1 0.2 2 0))
 (script-fu-menu-register "script-fu-comic-book" "<Image>/Filters/Artistic")
