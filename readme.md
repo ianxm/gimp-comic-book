@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org15c95c7)
-    1.  [Overview](#org37c3df2)
-    2.  [Example](#org146db54)
-    3.  [Filter](#org5909f81)
-        1.  [General Idea](#orge257758)
-        2.  [Script](#org4ba6473)
-    4.  [Previous Attemps](#orgf2cbb92)
-        1.  [Sketch A](#org6fc67ed)
-        2.  [Sketch B](#org1c2b674)
-        3.  [Comic Book A](#org8dd0648)
-        4.  [Comic Book B](#orgfb8fcc4)
-    5.  [References](#orge51aa7a)
-2.  [Literate Programming](#orgca13662)
+1.  [Comic Book Filter](#orgd209e5a)
+    1.  [Overview](#orge8f1366)
+    2.  [Example](#org90004b0)
+    3.  [Filter](#org9ecfee7)
+        1.  [General Idea](#org035f441)
+        2.  [Script](#org224e56c)
+    4.  [Previous Attemps](#org47dda14)
+        1.  [Sketch A](#org623cf4d)
+        2.  [Sketch B](#orgcdf2851)
+        3.  [Comic Book A](#org89186ed)
+        4.  [Comic Book B](#orgb169b1f)
+    5.  [References](#org3dbc518)
+2.  [Literate Programming](#org382bc7b)
 
 
 
-<a id="org15c95c7"></a>
+<a id="orgd209e5a"></a>
 
 # Comic Book Filter
 
 
-<a id="org37c3df2"></a>
+<a id="orge8f1366"></a>
 
 ## Overview
 
@@ -38,7 +38,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="org146db54"></a>
+<a id="org90004b0"></a>
 
 ## Example
 
@@ -59,12 +59,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org5909f81"></a>
+<a id="org9ecfee7"></a>
 
 ## Filter
 
 
-<a id="orge257758"></a>
+<a id="org035f441"></a>
 
 ### General Idea
 
@@ -83,7 +83,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org4ba6473"></a>
+<a id="org224e56c"></a>
 
 ### Script
 
@@ -199,8 +199,10 @@ into a single script for GIMP.
                                       blur-cycles lightness detail fine-detail shading)
           ;; (gimp-image-undo-group-start image)
         
-          (let* ((width (car (gimp-image-width image)))
-                 (height (car (gimp-image-height image)))
+          (let* ((orig-width (car (gimp-image-width image)))
+                 (orig-height (car (gimp-image-height image)))
+                 (width orig-width)
+                 (height orig-height)
                  (min-length 1500)
                  (sf 1)
                  (selection -1))
@@ -211,10 +213,12 @@ into a single script for GIMP.
                   (set! selection (car (gimp-selection-save image)))
                   (gimp-selection-none image)))
         
-            (when (< (max width height) min-length)
-              (set! sf (min 5 (/ min-length (max width height)))))
+            (when (< (max orig-width orig-height) min-length)
+              (set! sf (min 5 (/ min-length (max orig-width orig-height)))))
             (when (<> sf 1)
-              (gimp-image-scale image (* width sf) (* height sf))
+              (set! width (* width sf))
+              (set! height (* height sf))
+              (gimp-image-scale image width height)
               (when (> sf 1.2)
                 (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
         
@@ -236,9 +240,9 @@ into a single script for GIMP.
         
             (let* ((trace-layer (car (gimp-layer-copy background-layer FALSE)))
                    (sketch-layer (car (gimp-layer-copy background-layer FALSE))))
-              <<trace-layer>>
-        
               <<sketch-layer>>
+        
+              <<trace-layer>>
         
               <<shading-layer>>
         
@@ -247,8 +251,9 @@ into a single script for GIMP.
               <<darken-overlays>>
         
               (when (<> sf 1)
-                (gimp-image-scale image width height))
+                (gimp-image-scale image orig-width orig-height))
         
+              ;; (gimp-item-set-visible background-layer FALSE)
               (set! background-layer (car (gimp-image-flatten image))))
         
             (when (<> selection -1)
@@ -257,6 +262,43 @@ into a single script for GIMP.
         
           ;; (gimp-image-undo-group-end image)
           (gimp-displays-flush))
+    
+    Here we create a layer that outlines shapes, which we will call the
+    sketch layer.  First we create and add the new layer on top of the
+    background layer.
+    
+    Next we use the `photocopy` filter to convert the layer into lines
+    where the image is darkest.  This method was based on the
+    [cartoon-quick](https://www.gimphelp.org/effects_cartoon_quick.html) filter.  We use the `Detail` parameter to determine how
+    sensitive photocopy should be.  This does a good job of marking edges,
+    but also results in noise in large dark areas.  To reduce that effect
+    we lighten the image with a `curves` operation before the `photocopy`
+    call and darken it back after using the `levels` and `sharpen`
+    operations.  We also run a `median-blur` on the layer while the image
+    is indexed to clear up some of the noise.  If `Detail` is turned down
+    to zero we skip this step entirely.
+    
+    The `photocopy` filter produces an inverted greyscale image so there's
+    no need to desaturate or invert the sketch layer.  We just set its
+    mode to `MULTIPLY` and are done here.
+    
+        (when (> detail 0.0001)
+          (gimp-image-add-layer image sketch-layer 0)
+          (gimp-item-set-name sketch-layer "sketch")
+          (gimp-image-set-active-layer image sketch-layer)
+          (gimp-drawable-curves-spline sketch-layer HISTOGRAM-VALUE 10 (list->vector (list
+                                                                                      0.0  0.25
+                                                                                      0.25 0.375
+                                                                                      0.5  0.625
+                                                                                      0.75 0.875
+                                                                                      1.0  1.0)))
+          (let* ((detail-inv (- 1 detail))
+                 (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
+            (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
+          (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
+          (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
+        
+          (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
     
     Here we create a "trace layer" that traces over lines.  It adds thin
     lines wherever there are edges in the image.  The trace layer usually
@@ -321,42 +363,73 @@ into a single script for GIMP.
           (gimp-drawable-invert trace-layer TRUE)
           (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
     
-    Here we create a layer that outlines shapes, which we will call the
-    sketch layer.  First we create and add the new layer on top of the
-    background layer.
+    Now lets add some shading to give it more depth and more of a comic
+    book look.  I copied the technique for generating dashed lines from
+    the [Inkpen filter](https://www.gimphelp.org/artist_inkpen.html).  The idea is to find the darkest parts of the image
+    (using `Threshold`) and add diagonal dashed lines which look like
+    hatching to the image.  We use `Hurl` and `Motion Blur` to generate
+    the dashed lines and then use the `Threshold` layer to mask it.
     
-    Next we use the `photocopy` filter to convert the layer into lines
-    where the image is darkest.  This method was based on the
-    [cartoon-quick](https://www.gimphelp.org/effects_cartoon_quick.html) filter.  We use the `Detail` parameter to determine how
-    sensitive photocopy should be.  This does a good job of marking edges,
-    but also results in noise in large dark areas.  To reduce that effect
-    we lighten the image with a `curves` operation before the `photocopy`
-    call and darken it back after using the `levels` and `sharpen`
-    operations.  We also run a `median-blur` on the layer while the image
-    is indexed to clear up some of the noise.  If `Detail` is turned down
-    to zero we skip this step entirely.
+    This looks really good in many cases, but looks bad if the shading
+    covers someone's hair, since anyone would shade in the direction of
+    the hair instead of just going diagonally.  I've not found a way to
+    prevent this, though.
     
-    The `photocopy` filter produces an inverted greyscale image so there's
-    no need to desaturate or invert the sketch layer.  We just set its
-    mode to `MULTIPLY` and are done here.
-    
-        (when (> detail 0.0001)
-          (gimp-image-add-layer image sketch-layer 0)
-          (gimp-item-set-name sketch-layer "sketch")
-          (gimp-image-set-active-layer image sketch-layer)
-          (gimp-drawable-curves-spline sketch-layer HISTOGRAM-VALUE 10 (list->vector (list
-                                                                                      0.0  0.25
-                                                                                      0.25 0.375
-                                                                                      0.5  0.625
-                                                                                      0.75 0.875
-                                                                                      1.0  1.0)))
-          (let* ((detail-inv (- 1 detail))
-                 (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
-            (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
-          (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
-          (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
+        (when (> shading 0.0001)
+          (let* ((hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
+                                                      "" 100 LAYER-MODE-MULTIPLY)))
+                 (shading-layer-pre (car (gimp-layer-copy background-layer FALSE)))
+                 (dark-layer 0)
+                 (layer-name "light shading")
+                 (cutoff shading)
+                 (angle 135)
+                 (stroke-spacing 0.5)
+                 (length 50))
+            (gimp-image-add-layer image shading-layer-pre 0)
+            (gimp-image-set-active-layer image shading-layer-pre)
+            (gimp-drawable-shadows-highlights shading-layer-pre -40 0)
+            (plug-in-gauss RUN-NONINTERACTIVE image shading-layer-pre 3 3 0)
+            <<shading-step>>
         
-          (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
+            (set! hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
+                                                      "" 100 LAYER-MODE-MULTIPLY)))
+            (set! layer-name "dark shading")
+            (set! cutoff (/ cutoff 2))
+            (set! angle 110)
+            (set! stroke-spacing 1.0)
+            (set! length 100)
+            <<shading-step>>
+        
+            (gimp-image-remove-layer image shading-layer-pre)))
+    
+        (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
+        (gimp-image-add-layer image dark-layer 0)
+        (gimp-image-set-active-layer image dark-layer)
+        (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0 cutoff)
+        
+        (gimp-selection-all image)
+        (gimp-edit-copy dark-layer)
+        (gimp-selection-none image)
+        
+        (gimp-image-add-layer image hatching-layer 0)
+        (gimp-image-set-active-layer image hatching-layer)
+        (gimp-item-set-name hatching-layer layer-name)
+        (gimp-drawable-fill hatching-layer FILL-WHITE)
+        (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer stroke-spacing 1 TRUE (random-next))
+        (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
+        (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
+        (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
+        (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 0.98 1)
+        
+        (let ((mask (car (gimp-layer-create-mask hatching-layer ADD-MASK-WHITE)))
+              (float 0))
+          (gimp-layer-add-mask hatching-layer mask)
+          (gimp-layer-set-edit-mask hatching-layer TRUE)
+          (set! float (car (gimp-edit-paste mask TRUE)))
+          (gimp-floating-sel-anchor float))
+        
+        (gimp-image-remove-layer image dark-layer)
+        (gimp-layer-set-mode hatching-layer LAYER-MODE-MULTIPLY)
     
     Here we work on the background layer.
     
@@ -394,83 +467,6 @@ into a single script for GIMP.
         (gimp-image-convert-rgb image)
         (when (> lightness 0.0001)
           (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
-    
-    Now lets add some shading to give it more depth and more of a comic
-    book look.  I copied the technique for generating dashed lines from
-    the [Inkpen filter](https://www.gimphelp.org/artist_inkpen.html).  The idea is to find the darkest parts of the image
-    (using `Threshold`) and add diagonal dashed lines which look like
-    hatching to the image.  We use `Hurl` and `Motion Blur` to generate
-    the dashed lines and then use the `Threshold` layer to mask it.
-    
-    This looks really good in many cases, but looks bad if the shading
-    covers someone's hair, since anyone would shade in the direction of
-    the hair instead of just going diagonally.  I've not found a way to
-    prevent this, though.
-    
-        (when (> shading 0.0001)
-          (let* ((hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
-                                                      "" 100 LAYER-MODE-MULTIPLY)))
-                 (shading-layer-pre (car (gimp-layer-copy background-layer FALSE)))
-                 (dark-layer 0)
-                 ;; (shadows-layer 0)
-                 (layer-name "light shading")
-                 (cutoff shading)
-                 (pct 0.5)
-                 (length 50))
-            (gimp-image-add-layer image shading-layer-pre 0)
-            (gimp-image-set-active-layer image shading-layer-pre)
-            (gimp-drawable-shadows-highlights shading-layer-pre -40 0)
-            (plug-in-gauss RUN-NONINTERACTIVE image shading-layer-pre 3 3 0)
-            <<shading-step>>
-        
-            (set! hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
-                                                      "" 100 LAYER-MODE-MULTIPLY)))
-            (set! layer-name "dark shading")
-            (set! cutoff (/ cutoff 2))
-            (set! pct 1.0)
-            (set! length 100)
-            <<shading-step>>
-        
-            (gimp-image-remove-layer image shading-layer-pre)
-            ))
-    
-        (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
-        (gimp-image-add-layer image dark-layer 0)
-        (gimp-image-set-active-layer image dark-layer)
-        (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0.08 cutoff)
-        
-        ;; (set! shadows-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
-        ;; (gimp-image-add-layer image shadows-layer 0)
-        ;; (gimp-image-set-active-layer image shadows-layer)
-        ;; (gimp-drawable-extract-component shadows-layer 4)
-        ;; (gimp-drawable-threshold shadows-layer HISTOGRAM-VALUE 0.50 1)
-        ;; (gimp-layer-set-mode shadows-layer LAYER-MODE-MULTIPLY)
-        ;; (set! dark-layer (car (gimp-image-merge-down image shadows-layer EXPAND-AS-NECESSARY)))
-        ;; (gimp-image-set-active-layer image dark-layer)
-        
-        (gimp-selection-all image)
-        (gimp-edit-copy dark-layer)
-        (gimp-selection-none image)
-        
-        (gimp-image-add-layer image hatching-layer 0)
-        (gimp-image-set-active-layer image hatching-layer)
-        (gimp-item-set-name hatching-layer layer-name)
-        (gimp-drawable-fill hatching-layer FILL-WHITE)
-        (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer pct 1 FALSE 0)
-        (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
-        (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
-        (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
-        (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 0.98 1)
-        
-        (let ((mask (car (gimp-layer-create-mask hatching-layer ADD-MASK-WHITE)))
-              (float 0))
-          (gimp-layer-add-mask hatching-layer mask)
-          (gimp-layer-set-edit-mask hatching-layer TRUE)
-          (set! float (car (gimp-edit-paste mask TRUE)))
-          (gimp-floating-sel-anchor float))
-        
-        (gimp-image-remove-layer image dark-layer)
-        (gimp-layer-set-mode hatching-layer LAYER-MODE-MULTIPLY)
     
     When we indexed the colors the overlays may have been lightened, but
     we want the overlay lines to be black, so we'll go though and darken
@@ -668,7 +664,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="orgf2cbb92"></a>
+<a id="org47dda14"></a>
 
 ## Previous Attemps
 
@@ -676,7 +672,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org6fc67ed"></a>
+<a id="org623cf4d"></a>
 
 ### Sketch A
 
@@ -706,7 +702,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org1c2b674"></a>
+<a id="orgcdf2851"></a>
 
 ### Sketch B
 
@@ -751,7 +747,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org8dd0648"></a>
+<a id="org89186ed"></a>
 
 ### Comic Book A
 
@@ -797,7 +793,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orgfb8fcc4"></a>
+<a id="orgb169b1f"></a>
 
 ### Comic Book B
 
@@ -830,7 +826,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orge51aa7a"></a>
+<a id="org3dbc518"></a>
 
 ## References
 
@@ -839,7 +835,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="orgca13662"></a>
+<a id="org382bc7b"></a>
 
 # Literate Programming
 

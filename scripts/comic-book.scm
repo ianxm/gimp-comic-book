@@ -21,8 +21,10 @@
                               blur-cycles lightness detail fine-detail shading)
   ;; (gimp-image-undo-group-start image)
 
-  (let* ((width (car (gimp-image-width image)))
-         (height (car (gimp-image-height image)))
+  (let* ((orig-width (car (gimp-image-width image)))
+         (orig-height (car (gimp-image-height image)))
+         (width orig-width)
+         (height orig-height)
          (min-length 1500)
          (sf 1)
          (selection -1))
@@ -33,10 +35,12 @@
           (set! selection (car (gimp-selection-save image)))
           (gimp-selection-none image)))
 
-    (when (< (max width height) min-length)
-      (set! sf (min 5 (/ min-length (max width height)))))
+    (when (< (max orig-width orig-height) min-length)
+      (set! sf (min 5 (/ min-length (max orig-width orig-height)))))
     (when (<> sf 1)
-      (gimp-image-scale image (* width sf) (* height sf))
+      (set! width (* width sf))
+      (set! height (* height sf))
+      (gimp-image-scale image width height)
       (when (> sf 1.2)
         (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
@@ -58,6 +62,24 @@
 
     (let* ((trace-layer (car (gimp-layer-copy background-layer FALSE)))
            (sketch-layer (car (gimp-layer-copy background-layer FALSE))))
+      (when (> detail 0.0001)
+        (gimp-image-add-layer image sketch-layer 0)
+        (gimp-item-set-name sketch-layer "sketch")
+        (gimp-image-set-active-layer image sketch-layer)
+        (gimp-drawable-curves-spline sketch-layer HISTOGRAM-VALUE 10 (list->vector (list
+                                                                                    0.0  0.25
+                                                                                    0.25 0.375
+                                                                                    0.5  0.625
+                                                                                    0.75 0.875
+                                                                                    1.0  1.0)))
+        (let* ((detail-inv (- 1 detail))
+               (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
+          (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
+        (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
+        (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
+      
+        (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
+
       (when (> fine-detail 0.0001)
         (gimp-image-add-layer image trace-layer 0)
         (gimp-item-set-name trace-layer "trace")
@@ -99,33 +121,15 @@
         (gimp-drawable-invert trace-layer TRUE)
         (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
 
-      (when (> detail 0.0001)
-        (gimp-image-add-layer image sketch-layer 0)
-        (gimp-item-set-name sketch-layer "sketch")
-        (gimp-image-set-active-layer image sketch-layer)
-        (gimp-drawable-curves-spline sketch-layer HISTOGRAM-VALUE 10 (list->vector (list
-                                                                                    0.0  0.25
-                                                                                    0.25 0.375
-                                                                                    0.5  0.625
-                                                                                    0.75 0.875
-                                                                                    1.0  1.0)))
-        (let* ((detail-inv (- 1 detail))
-               (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
-          (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
-        (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
-        (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
-      
-        (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
-
       (when (> shading 0.0001)
         (let* ((hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
                                                     "" 100 LAYER-MODE-MULTIPLY)))
                (shading-layer-pre (car (gimp-layer-copy background-layer FALSE)))
                (dark-layer 0)
-               ;; (shadows-layer 0)
                (layer-name "light shading")
                (cutoff shading)
-               (pct 0.5)
+               (angle 135)
+               (stroke-spacing 0.5)
                (length 50))
           (gimp-image-add-layer image shading-layer-pre 0)
           (gimp-image-set-active-layer image shading-layer-pre)
@@ -134,16 +138,7 @@
           (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
           (gimp-image-add-layer image dark-layer 0)
           (gimp-image-set-active-layer image dark-layer)
-          (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0.08 cutoff)
-          
-          ;; (set! shadows-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
-          ;; (gimp-image-add-layer image shadows-layer 0)
-          ;; (gimp-image-set-active-layer image shadows-layer)
-          ;; (gimp-drawable-extract-component shadows-layer 4)
-          ;; (gimp-drawable-threshold shadows-layer HISTOGRAM-VALUE 0.50 1)
-          ;; (gimp-layer-set-mode shadows-layer LAYER-MODE-MULTIPLY)
-          ;; (set! dark-layer (car (gimp-image-merge-down image shadows-layer EXPAND-AS-NECESSARY)))
-          ;; (gimp-image-set-active-layer image dark-layer)
+          (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0 cutoff)
           
           (gimp-selection-all image)
           (gimp-edit-copy dark-layer)
@@ -153,7 +148,7 @@
           (gimp-image-set-active-layer image hatching-layer)
           (gimp-item-set-name hatching-layer layer-name)
           (gimp-drawable-fill hatching-layer FILL-WHITE)
-          (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer pct 1 FALSE 0)
+          (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer stroke-spacing 1 TRUE (random-next))
           (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
           (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
           (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
@@ -173,21 +168,13 @@
                                                     "" 100 LAYER-MODE-MULTIPLY)))
           (set! layer-name "dark shading")
           (set! cutoff (/ cutoff 2))
-          (set! pct 1.0)
+          (set! angle 110)
+          (set! stroke-spacing 1.0)
           (set! length 100)
           (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
           (gimp-image-add-layer image dark-layer 0)
           (gimp-image-set-active-layer image dark-layer)
-          (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0.08 cutoff)
-          
-          ;; (set! shadows-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
-          ;; (gimp-image-add-layer image shadows-layer 0)
-          ;; (gimp-image-set-active-layer image shadows-layer)
-          ;; (gimp-drawable-extract-component shadows-layer 4)
-          ;; (gimp-drawable-threshold shadows-layer HISTOGRAM-VALUE 0.50 1)
-          ;; (gimp-layer-set-mode shadows-layer LAYER-MODE-MULTIPLY)
-          ;; (set! dark-layer (car (gimp-image-merge-down image shadows-layer EXPAND-AS-NECESSARY)))
-          ;; (gimp-image-set-active-layer image dark-layer)
+          (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0 cutoff)
           
           (gimp-selection-all image)
           (gimp-edit-copy dark-layer)
@@ -197,7 +184,7 @@
           (gimp-image-set-active-layer image hatching-layer)
           (gimp-item-set-name hatching-layer layer-name)
           (gimp-drawable-fill hatching-layer FILL-WHITE)
-          (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer pct 1 FALSE 0)
+          (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer stroke-spacing 1 TRUE (random-next))
           (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
           (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
           (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
@@ -213,8 +200,7 @@
           (gimp-image-remove-layer image dark-layer)
           (gimp-layer-set-mode hatching-layer LAYER-MODE-MULTIPLY)
       
-          (gimp-image-remove-layer image shading-layer-pre)
-          ))
+          (gimp-image-remove-layer image shading-layer-pre)))
 
       (gimp-image-set-active-layer image background-layer)
       (if (= selection -1)
@@ -333,8 +319,9 @@
       (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
 
       (when (<> sf 1)
-        (gimp-image-scale image width height))
+        (gimp-image-scale image orig-width orig-height))
 
+      ;; (gimp-item-set-visible background-layer FALSE)
       (set! background-layer (car (gimp-image-flatten image))))
 
     (when (<> selection -1)
