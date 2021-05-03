@@ -137,8 +137,12 @@
           (plug-in-gauss RUN-NONINTERACTIVE image shading-layer-pre 3 3 0)
           (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
           (gimp-image-add-layer image dark-layer 0)
+          (gimp-drawable-desaturate dark-layer DESATURATE-LUMINANCE)
           (gimp-image-set-active-layer image dark-layer)
-          (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0 cutoff)
+          (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
+          (gimp-drawable-curves-spline dark-layer HISTOGRAM-VALUE 4 (list->vector (list
+                                                                                   (- (* cutoff 0.8) 0.05) 1.0
+                                                                                   (+ (* cutoff 0.8) 0.05) 0.0)))
           
           (gimp-selection-all image)
           (gimp-edit-copy dark-layer)
@@ -151,8 +155,7 @@
           (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer stroke-spacing 1 TRUE (random-next))
           (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
           (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
-          (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
-          (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 0.98 1)
+          (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 1 1)
           
           (let ((mask (car (gimp-layer-create-mask hatching-layer ADD-MASK-WHITE)))
                 (float 0))
@@ -168,13 +171,16 @@
                                                     "" 100 LAYER-MODE-MULTIPLY)))
           (set! layer-name "dark shading")
           (set! cutoff (/ cutoff 2))
-          (set! angle 110)
+          ;; (set! angle 110)
           (set! stroke-spacing 1.0)
-          (set! length 100)
           (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
           (gimp-image-add-layer image dark-layer 0)
+          (gimp-drawable-desaturate dark-layer DESATURATE-LUMINANCE)
           (gimp-image-set-active-layer image dark-layer)
-          (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0 cutoff)
+          (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
+          (gimp-drawable-curves-spline dark-layer HISTOGRAM-VALUE 4 (list->vector (list
+                                                                                   (- (* cutoff 0.8) 0.05) 1.0
+                                                                                   (+ (* cutoff 0.8) 0.05) 0.0)))
           
           (gimp-selection-all image)
           (gimp-edit-copy dark-layer)
@@ -187,8 +193,7 @@
           (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer stroke-spacing 1 TRUE (random-next))
           (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
           (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
-          (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
-          (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 0.98 1)
+          (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 1 1)
           
           (let ((mask (car (gimp-layer-create-mask hatching-layer ADD-MASK-WHITE)))
                 (float 0))

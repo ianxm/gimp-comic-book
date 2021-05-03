@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#orgd209e5a)
-    1.  [Overview](#orge8f1366)
-    2.  [Example](#org90004b0)
-    3.  [Filter](#org9ecfee7)
-        1.  [General Idea](#org035f441)
-        2.  [Script](#org224e56c)
-    4.  [Previous Attemps](#org47dda14)
-        1.  [Sketch A](#org623cf4d)
-        2.  [Sketch B](#orgcdf2851)
-        3.  [Comic Book A](#org89186ed)
-        4.  [Comic Book B](#orgb169b1f)
-    5.  [References](#org3dbc518)
-2.  [Literate Programming](#org382bc7b)
+1.  [Comic Book Filter](#orgb81adf5)
+    1.  [Overview](#org9f89623)
+    2.  [Example](#orgbfbf584)
+    3.  [Filter](#org524f9a8)
+        1.  [General Idea](#org9c8e0f2)
+        2.  [Script](#org412027f)
+    4.  [Previous Attemps](#org7c0997f)
+        1.  [Sketch A](#orgd10ebd4)
+        2.  [Sketch B](#org0b425b9)
+        3.  [Comic Book A](#orga8bdf3a)
+        4.  [Comic Book B](#org2ae86b2)
+    5.  [References](#org1b44855)
+2.  [Literate Programming](#org6f4a7e4)
 
 
 
-<a id="orgd209e5a"></a>
+<a id="orgb81adf5"></a>
 
 # Comic Book Filter
 
 
-<a id="orge8f1366"></a>
+<a id="org9f89623"></a>
 
 ## Overview
 
@@ -38,7 +38,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="org90004b0"></a>
+<a id="orgbfbf584"></a>
 
 ## Example
 
@@ -48,23 +48,23 @@ Here is the original:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_orig_2.jpg)
 
 Here is the final result:
-![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic_2.jpg)
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic_3.jpg)
 
 These are the GIMP filter settings I used to convert this image:
-![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_dialog_2.jpg)
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_dialog_3.jpg)
 
 In case you're curious, here are the overlay and background layers
 that make up the final result:
-![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_overlays_2.jpg)
+![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_overlays_3.jpg)
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org9ecfee7"></a>
+<a id="org524f9a8"></a>
 
 ## Filter
 
 
-<a id="org035f441"></a>
+<a id="org9c8e0f2"></a>
 
 ### General Idea
 
@@ -83,7 +83,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org224e56c"></a>
+<a id="org412027f"></a>
 
 ### Script
 
@@ -363,12 +363,13 @@ into a single script for GIMP.
           (gimp-drawable-invert trace-layer TRUE)
           (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
     
-    Now lets add some shading to give it more depth and more of a comic
-    book look.  I copied the technique for generating dashed lines from
-    the [Inkpen filter](https://www.gimphelp.org/artist_inkpen.html).  The idea is to find the darkest parts of the image
-    (using `Threshold`) and add diagonal dashed lines which look like
-    hatching to the image.  We use `Hurl` and `Motion Blur` to generate
-    the dashed lines and then use the `Threshold` layer to mask it.
+    Now lets add some shading to give it more depth and action.  I copied
+    the technique for generating dashed lines from the [Inkpen filter](https://www.gimphelp.org/artist_inkpen.html).  The
+    idea is to find the darkest parts of the image and add diagonal dashed
+    lines which look like hatching to the image.
+    
+    We do this twice at different levels of darkness.  We overlay the
+    strokes to produce two levels of shading in the comic image.
     
     This looks really good in many cases, but looks bad if the shading
     covers someone's hair, since anyone would shade in the direction of
@@ -395,17 +396,27 @@ into a single script for GIMP.
                                                       "" 100 LAYER-MODE-MULTIPLY)))
             (set! layer-name "dark shading")
             (set! cutoff (/ cutoff 2))
-            (set! angle 110)
+            ;; (set! angle 110)
             (set! stroke-spacing 1.0)
-            (set! length 100)
             <<shading-step>>
         
             (gimp-image-remove-layer image shading-layer-pre)))
     
+    This is the `shading-step` routine referenced above which is run twice
+    to do the work of overlaying a shading layer over the image.  We find
+    the darkest parts of the image using `Threshold` and add diagonal
+    lines which look like hatching to the image.  We use `Hurl` and
+    `Motion Blur` to generate the hatching lines and then use the
+    `Threshold` layer to mask it since we only want the darkest strokes.
+    
         (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
         (gimp-image-add-layer image dark-layer 0)
+        (gimp-drawable-desaturate dark-layer DESATURATE-LUMINANCE)
         (gimp-image-set-active-layer image dark-layer)
-        (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0 cutoff)
+        (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
+        (gimp-drawable-curves-spline dark-layer HISTOGRAM-VALUE 4 (list->vector (list
+                                                                                 (- (* cutoff 0.8) 0.05) 1.0
+                                                                                 (+ (* cutoff 0.8) 0.05) 0.0)))
         
         (gimp-selection-all image)
         (gimp-edit-copy dark-layer)
@@ -418,8 +429,7 @@ into a single script for GIMP.
         (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer stroke-spacing 1 TRUE (random-next))
         (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
         (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
-        (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
-        (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 0.98 1)
+        (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 1 1)
         
         (let ((mask (car (gimp-layer-create-mask hatching-layer ADD-MASK-WHITE)))
               (float 0))
@@ -664,7 +674,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org47dda14"></a>
+<a id="org7c0997f"></a>
 
 ## Previous Attemps
 
@@ -672,7 +682,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org623cf4d"></a>
+<a id="orgd10ebd4"></a>
 
 ### Sketch A
 
@@ -702,7 +712,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="orgcdf2851"></a>
+<a id="org0b425b9"></a>
 
 ### Sketch B
 
@@ -747,7 +757,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org89186ed"></a>
+<a id="orga8bdf3a"></a>
 
 ### Comic Book A
 
@@ -793,7 +803,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orgb169b1f"></a>
+<a id="org2ae86b2"></a>
 
 ### Comic Book B
 
@@ -826,7 +836,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org3dbc518"></a>
+<a id="org1b44855"></a>
 
 ## References
 
@@ -835,7 +845,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org382bc7b"></a>
+<a id="org6f4a7e4"></a>
 
 # Literate Programming
 

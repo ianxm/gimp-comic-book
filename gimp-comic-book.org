@@ -21,14 +21,14 @@ Here is the original:
 [[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_orig_2.jpg]]
 
 Here is the final result:
-[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic_2.jpg]]
+[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_comic_3.jpg]]
 
 These are the GIMP filter settings I used to convert this image:
-[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_dialog_2.jpg]]
+[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_dialog_3.jpg]]
 
 In case you're curious, here are the overlay and background layers
 that make up the final result:
-[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_overlays_2.jpg]]
+[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_overlays_3.jpg]]
 [[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg]]
 
 ** Filter
@@ -337,12 +337,13 @@ that the lines show up overlayed on the background.
     (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
 #+end_src
 
-Now lets add some shading to give it more depth and more of a comic
-book look.  I copied the technique for generating dashed lines from
-the [[https://www.gimphelp.org/artist_inkpen.html][Inkpen filter]].  The idea is to find the darkest parts of the image
-(using =Threshold=) and add diagonal dashed lines which look like
-hatching to the image.  We use =Hurl= and =Motion Blur= to generate
-the dashed lines and then use the =Threshold= layer to mask it.
+Now lets add some shading to give it more depth and action.  I copied
+the technique for generating dashed lines from the [[https://www.gimphelp.org/artist_inkpen.html][Inkpen filter]].  The
+idea is to find the darkest parts of the image and add diagonal dashed
+lines which look like hatching to the image.
+
+We do this twice at different levels of darkness.  We overlay the
+strokes to produce two levels of shading in the comic image.
 
 This looks really good in many cases, but looks bad if the shading
 covers someone's hair, since anyone would shade in the direction of
@@ -371,20 +372,30 @@ prevent this, though.
                                                 "" 100 LAYER-MODE-MULTIPLY)))
       (set! layer-name "dark shading")
       (set! cutoff (/ cutoff 2))
-      (set! angle 110)
+      ;; (set! angle 110)
       (set! stroke-spacing 1.0)
-      (set! length 100)
       <<shading-step>>
 
       (gimp-image-remove-layer image shading-layer-pre)))
 #+end_src
 
+This is the =shading-step= routine referenced above which is run twice
+to do the work of overlaying a shading layer over the image.  We find
+the darkest parts of the image using =Threshold= and add diagonal
+lines which look like hatching to the image.  We use =Hurl= and
+=Motion Blur= to generate the hatching lines and then use the
+=Threshold= layer to mask it since we only want the darkest strokes.
+
 #+name: shading-step
 #+begin_src scheme :noweb no-export
   (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
   (gimp-image-add-layer image dark-layer 0)
+  (gimp-drawable-desaturate dark-layer DESATURATE-LUMINANCE)
   (gimp-image-set-active-layer image dark-layer)
-  (gimp-drawable-threshold dark-layer HISTOGRAM-VALUE 0 cutoff)
+  (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
+  (gimp-drawable-curves-spline dark-layer HISTOGRAM-VALUE 4 (list->vector (list
+                                                                           (- (* cutoff 0.8) 0.05) 1.0
+                                                                           (+ (* cutoff 0.8) 0.05) 0.0)))
 
   (gimp-selection-all image)
   (gimp-edit-copy dark-layer)
@@ -397,8 +408,7 @@ prevent this, though.
   (plug-in-randomize-hurl RUN-NONINTERACTIVE image hatching-layer stroke-spacing 1 TRUE (random-next))
   (plug-in-mblur RUN-NONINTERACTIVE image hatching-layer 0 length 135 0 0)
   (gimp-drawable-desaturate hatching-layer DESATURATE-LUMINANCE)
-  (gimp-drawable-levels hatching-layer HISTOGRAM-VALUE 0.99 1 TRUE 1 0 1 TRUE)
-  (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 0.98 1)
+  (gimp-drawable-threshold hatching-layer HISTOGRAM-VALUE 1 1)
 
   (let ((mask (car (gimp-layer-create-mask hatching-layer ADD-MASK-WHITE)))
         (float 0))
