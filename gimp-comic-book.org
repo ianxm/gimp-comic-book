@@ -487,7 +487,13 @@ number of colors but this reduces the flattening of the colors, so the
 end result is less cartoon-like.
 
 To get around this we index faces separately from the background, then
-combine the colors found in the two indexing runs.
+combine the colors found in the two indexing runs.  When combining
+colors we prune background colors that are too close to face colors to
+make it less likely the final indexing run will choose background
+colors for faces.  The graph below shows a run where some colors were
+removed.
+
+[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_prune.gif]]
 
 In the code below, if set up a secondary image for use in the indexing
 runs, which will be described in greater details in the sections below.

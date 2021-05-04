@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#orgb81adf5)
-    1.  [Overview](#org9f89623)
-    2.  [Example](#orgbfbf584)
-    3.  [Filter](#org524f9a8)
-        1.  [General Idea](#org9c8e0f2)
-        2.  [Script](#org412027f)
-    4.  [Previous Attemps](#org7c0997f)
-        1.  [Sketch A](#orgd10ebd4)
-        2.  [Sketch B](#org0b425b9)
-        3.  [Comic Book A](#orga8bdf3a)
-        4.  [Comic Book B](#org2ae86b2)
-    5.  [References](#org1b44855)
-2.  [Literate Programming](#org6f4a7e4)
+1.  [Comic Book Filter](#orgfa93dd1)
+    1.  [Overview](#org3b819ca)
+    2.  [Example](#org4081c6d)
+    3.  [Filter](#orgf50008b)
+        1.  [General Idea](#org673a93e)
+        2.  [Script](#orgde63deb)
+    4.  [Previous Attemps](#org1800fed)
+        1.  [Sketch A](#org23d3bcc)
+        2.  [Sketch B](#org0cf0abc)
+        3.  [Comic Book A](#org4aef268)
+        4.  [Comic Book B](#org1e7dbb1)
+    5.  [References](#org8a190be)
+2.  [Literate Programming](#org5e70abf)
 
 
 
-<a id="orgb81adf5"></a>
+<a id="orgfa93dd1"></a>
 
 # Comic Book Filter
 
 
-<a id="org9f89623"></a>
+<a id="org3b819ca"></a>
 
 ## Overview
 
@@ -38,7 +38,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="orgbfbf584"></a>
+<a id="org4081c6d"></a>
 
 ## Example
 
@@ -59,12 +59,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org524f9a8"></a>
+<a id="orgf50008b"></a>
 
 ## Filter
 
 
-<a id="org9c8e0f2"></a>
+<a id="org673a93e"></a>
 
 ### General Idea
 
@@ -83,7 +83,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org412027f"></a>
+<a id="orgde63deb"></a>
 
 ### Script
 
@@ -501,7 +501,13 @@ into a single script for GIMP.
     end result is less cartoon-like.
     
     To get around this we index faces separately from the background, then
-    combine the colors found in the two indexing runs.
+    combine the colors found in the two indexing runs.  When combining
+    colors we prune background colors that are too close to face colors to
+    make it less likely the final indexing run will choose background
+    colors for faces.  The graph below shows a run where some colors were
+    removed.
+    
+    ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_prune.gif)
     
     In the code below, if set up a secondary image for use in the indexing
     runs, which will be described in greater details in the sections below.
@@ -674,7 +680,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org7c0997f"></a>
+<a id="org1800fed"></a>
 
 ## Previous Attemps
 
@@ -682,7 +688,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgd10ebd4"></a>
+<a id="org23d3bcc"></a>
 
 ### Sketch A
 
@@ -712,7 +718,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org0b425b9"></a>
+<a id="org0cf0abc"></a>
 
 ### Sketch B
 
@@ -757,7 +763,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orga8bdf3a"></a>
+<a id="org4aef268"></a>
 
 ### Comic Book A
 
@@ -803,7 +809,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org2ae86b2"></a>
+<a id="org1e7dbb1"></a>
 
 ### Comic Book B
 
@@ -836,7 +842,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org1b44855"></a>
+<a id="org8a190be"></a>
 
 ## References
 
@@ -845,7 +851,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org6f4a7e4"></a>
+<a id="org5e70abf"></a>
 
 # Literate Programming
 
