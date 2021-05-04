@@ -305,7 +305,7 @@
                           (set! index (+ index 1)))
                         background-colors)
               (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name)
-              (gimp-palette-delete palette-name)gpn)
+              (gimp-palette-delete palette-name))
             ))
       
       (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
