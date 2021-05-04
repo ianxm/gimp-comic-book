@@ -493,7 +493,7 @@ make it less likely the final indexing run will choose background
 colors for faces.  The graph below shows a run where some colors were
 removed.
 
-[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_prune.gif]]
+[[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_prune_2.gif]]
 
 In the code below, if set up a secondary image for use in the indexing
 runs, which will be described in greater details in the sections below.
