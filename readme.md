@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#orgfa93dd1)
-    1.  [Overview](#org3b819ca)
-    2.  [Example](#org4081c6d)
-    3.  [Filter](#orgf50008b)
-        1.  [General Idea](#org673a93e)
-        2.  [Script](#orgde63deb)
-    4.  [Previous Attemps](#org1800fed)
-        1.  [Sketch A](#org23d3bcc)
-        2.  [Sketch B](#org0cf0abc)
-        3.  [Comic Book A](#org4aef268)
-        4.  [Comic Book B](#org1e7dbb1)
-    5.  [References](#org8a190be)
-2.  [Literate Programming](#org5e70abf)
+1.  [Comic Book Filter](#orgf4f53e7)
+    1.  [Overview](#orgab2740d)
+    2.  [Example](#org8f0f72d)
+    3.  [Filter](#org24b3109)
+        1.  [General Idea](#org8b07f58)
+        2.  [Script](#org9d8234f)
+    4.  [Previous Attemps](#orgca9c164)
+        1.  [Sketch A](#orge538947)
+        2.  [Sketch B](#org0f6428a)
+        3.  [Comic Book A](#orgf431878)
+        4.  [Comic Book B](#org355b1e2)
+    5.  [References](#org7396748)
+2.  [Literate Programming](#org0b08e36)
 
 
 
-<a id="orgfa93dd1"></a>
+<a id="orgf4f53e7"></a>
 
 # Comic Book Filter
 
 
-<a id="org3b819ca"></a>
+<a id="orgab2740d"></a>
 
 ## Overview
 
@@ -38,7 +38,7 @@ you'll need to wait for that patch to be accepted or patch and build
 GIMP yourself which, unfortunately, is harder than it sounds.
 
 
-<a id="org4081c6d"></a>
+<a id="org8f0f72d"></a>
 
 ## Example
 
@@ -59,12 +59,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="orgf50008b"></a>
+<a id="org24b3109"></a>
 
 ## Filter
 
 
-<a id="org673a93e"></a>
+<a id="org8b07f58"></a>
 
 ### General Idea
 
@@ -83,7 +83,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orgde63deb"></a>
+<a id="org9d8234f"></a>
 
 ### Script
 
@@ -507,7 +507,7 @@ into a single script for GIMP.
     colors for faces.  The graph below shows a run where some colors were
     removed.
     
-    ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_prune.gif)
+    ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_prune_2.gif)
     
     In the code below, if set up a secondary image for use in the indexing
     runs, which will be described in greater details in the sections below.
@@ -644,7 +644,7 @@ into a single script for GIMP.
                       (set! index (+ index 1)))
                     background-colors)
           (gimp-image-convert-indexed image CONVERT-DITHER-NONE CONVERT-PALETTE-CUSTOM 0 FALSE TRUE palette-name)
-          (gimp-palette-delete palette-name))
+          (gimp-palette-delete palette-name)gpn)
     
     These are some helper functions used while merging the colors found
     during the two indexing runs to form the final palette.
@@ -680,7 +680,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org1800fed"></a>
+<a id="orgca9c164"></a>
 
 ## Previous Attemps
 
@@ -688,7 +688,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org23d3bcc"></a>
+<a id="orge538947"></a>
 
 ### Sketch A
 
@@ -718,7 +718,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org0cf0abc"></a>
+<a id="org0f6428a"></a>
 
 ### Sketch B
 
@@ -763,7 +763,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org4aef268"></a>
+<a id="orgf431878"></a>
 
 ### Comic Book A
 
@@ -809,7 +809,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org1e7dbb1"></a>
+<a id="org355b1e2"></a>
 
 ### Comic Book B
 
@@ -842,7 +842,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org8a190be"></a>
+<a id="org7396748"></a>
 
 ## References
 
@@ -851,7 +851,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org5e70abf"></a>
+<a id="org0b08e36"></a>
 
 # Literate Programming
 
