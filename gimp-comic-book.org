@@ -9,11 +9,14 @@ frame from a comic book.  This is similar to the many cartoon filters
 out there.
 
 WARNING: This filter won't work on a standard build of GIMP.  This
-filter uses the =median blur= filter, which is not in the PDB, so it
-is not available to scripts in the current GIMP build.  I submitted a
-[[https://gitlab.gnome.org/GNOME/gimp/-/merge_requests/405][patch]] to the GIMP maintainers to include it.  To run this yourself
-you'll need to wait for that patch to be accepted or patch and build
-GIMP yourself which, unfortunately, is harder than it sounds.
+filter uses several operations which are broken or not in the PDB, so
+they are not available to scripts in the current GIMP build.  I
+submitted patches ([[https://gitlab.gnome.org/GNOME/gimp/-/merge_requests/405][median-blur]], [[https://gitlab.gnome.org/GNOME/gimp/-/merge_requests/444][hurl]], [[https://gitlab.gnome.org/GNOME/gimp/-/merge_requests/446][shadows-highlights]]) to the GIMP
+maintainers to add them.  To run this yourself you'll need to wait for
+the patches to be accepted and a new package to be released or patch
+and build GIMP yourself which, unfortunately, is harder than it sounds
+since GIMP requires several dependencies that also must be locally
+compiled.
 ** Example
 This is an example photo run through the comic book filter.
 
@@ -364,7 +367,7 @@ prevent this, though.
            (length 50))
       (gimp-image-add-layer image shading-layer-pre 0)
       (gimp-image-set-active-layer image shading-layer-pre)
-      (gimp-drawable-shadows-highlights shading-layer-pre -40 0)
+      (gimp-drawable-shadows-highlights shading-layer-pre -40 0 0 0.1 50 50 50)
       (plug-in-gauss RUN-NONINTERACTIVE image shading-layer-pre 3 3 0)
       <<shading-step>>
 

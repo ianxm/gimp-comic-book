@@ -133,7 +133,7 @@
                (length 50))
           (gimp-image-add-layer image shading-layer-pre 0)
           (gimp-image-set-active-layer image shading-layer-pre)
-          (gimp-drawable-shadows-highlights shading-layer-pre -40 0)
+          (gimp-drawable-shadows-highlights shading-layer-pre -40 0 0 0.1 50 50 50)
           (plug-in-gauss RUN-NONINTERACTIVE image shading-layer-pre 3 3 0)
           (set! dark-layer (car (gimp-layer-copy shading-layer-pre FALSE)))
           (gimp-image-add-layer image dark-layer 0)

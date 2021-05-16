@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org2c520f3)
-    1.  [Overview](#orgf427d22)
-    2.  [Example](#org6883042)
-    3.  [Filter](#org6716a14)
-        1.  [General Idea](#orgcfec804)
-        2.  [Script](#org2f1f9aa)
-    4.  [Previous Attemps](#org38579fa)
-        1.  [Sketch A](#org35065a2)
-        2.  [Sketch B](#org4ec89db)
-        3.  [Comic Book A](#orgda5db4e)
-        4.  [Comic Book B](#orga9d5755)
-    5.  [References](#orgee3fb13)
-2.  [Literate Programming](#orgd4669f9)
+1.  [Comic Book Filter](#org3a0c0be)
+    1.  [Overview](#org323c266)
+    2.  [Example](#orgd7bbe8f)
+    3.  [Filter](#orgafafc53)
+        1.  [General Idea](#org20d610a)
+        2.  [Script](#org3dcb6b7)
+    4.  [Previous Attemps](#org5d5e934)
+        1.  [Sketch A](#org16f0d17)
+        2.  [Sketch B](#orgc0a4f2c)
+        3.  [Comic Book A](#org2a0b019)
+        4.  [Comic Book B](#org0d65b17)
+    5.  [References](#org25ab9a4)
+2.  [Literate Programming](#org8e4cf96)
 
 
 
-<a id="org2c520f3"></a>
+<a id="org3a0c0be"></a>
 
 # Comic Book Filter
 
 
-<a id="orgf427d22"></a>
+<a id="org323c266"></a>
 
 ## Overview
 
@@ -31,14 +31,17 @@ frame from a comic book.  This is similar to the many cartoon filters
 out there.
 
 WARNING: This filter won't work on a standard build of GIMP.  This
-filter uses the `median blur` filter, which is not in the PDB, so it
-is not available to scripts in the current GIMP build.  I submitted a
-[patch](https://gitlab.gnome.org/GNOME/gimp/-/merge_requests/405) to the GIMP maintainers to include it.  To run this yourself
-you'll need to wait for that patch to be accepted or patch and build
-GIMP yourself which, unfortunately, is harder than it sounds.
+filter uses several operations which are broken or not in the PDB, so
+they are not available to scripts in the current GIMP build.  I
+submitted patches ([median-blur](https://gitlab.gnome.org/GNOME/gimp/-/merge_requests/405), [hurl](https://gitlab.gnome.org/GNOME/gimp/-/merge_requests/444), [shadows-highlights](https://gitlab.gnome.org/GNOME/gimp/-/merge_requests/446)) to the GIMP
+maintainers to add them.  To run this yourself you'll need to wait for
+the patches to be accepted and a new package to be released or patch
+and build GIMP yourself which, unfortunately, is harder than it sounds
+since GIMP requires several dependencies that also must be locally
+compiled.
 
 
-<a id="org6883042"></a>
+<a id="orgd7bbe8f"></a>
 
 ## Example
 
@@ -59,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org6716a14"></a>
+<a id="orgafafc53"></a>
 
 ## Filter
 
 
-<a id="orgcfec804"></a>
+<a id="org20d610a"></a>
 
 ### General Idea
 
@@ -83,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org2f1f9aa"></a>
+<a id="org3dcb6b7"></a>
 
 ### Script
 
@@ -388,7 +391,7 @@ into a single script for GIMP.
                  (length 50))
             (gimp-image-add-layer image shading-layer-pre 0)
             (gimp-image-set-active-layer image shading-layer-pre)
-            (gimp-drawable-shadows-highlights shading-layer-pre -40 0)
+            (gimp-drawable-shadows-highlights shading-layer-pre -40 0 0 0.1 50 50 50)
             (plug-in-gauss RUN-NONINTERACTIVE image shading-layer-pre 3 3 0)
             <<shading-step>>
         
@@ -680,7 +683,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org38579fa"></a>
+<a id="org5d5e934"></a>
 
 ## Previous Attemps
 
@@ -688,7 +691,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org35065a2"></a>
+<a id="org16f0d17"></a>
 
 ### Sketch A
 
@@ -718,7 +721,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org4ec89db"></a>
+<a id="orgc0a4f2c"></a>
 
 ### Sketch B
 
@@ -763,7 +766,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orgda5db4e"></a>
+<a id="org2a0b019"></a>
 
 ### Comic Book A
 
@@ -809,7 +812,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orga9d5755"></a>
+<a id="org0d65b17"></a>
 
 ### Comic Book B
 
@@ -842,7 +845,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgee3fb13"></a>
+<a id="org25ab9a4"></a>
 
 ## References
 
@@ -851,7 +854,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="orgd4669f9"></a>
+<a id="org8e4cf96"></a>
 
 # Literate Programming
 
