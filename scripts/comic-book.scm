@@ -73,8 +73,10 @@
                                                                                     0.75 0.875
                                                                                     1.0  1.0)))
         (let* ((detail-inv (- 1 detail))
-               (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
-          (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
+               (detail-val (+ (* detail-inv 0.4) 0.6)) ; range from 1 (lowest) to 0.6 (highest)
+               ;; mask-val range from 4 to 20 as orig image size scales to 3000
+               (mask-val (max (min (* (/ (max orig-width orig-height) 3000.0) 20) 20) 6)))
+          (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer mask-val 1.0 0.0 detail-val))
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
         (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
       
@@ -378,7 +380,7 @@
  SF-DRAWABLE   "Drawable"   0             ; the layer
  SF-ADJUSTMENT "Face Colors"          '(5 2 12 1 10 0 0)
  SF-ADJUSTMENT "Background Colors"    '(24 3 64 1 10 0 0)
- SF-ADJUSTMENT "Smoothness"           '(2 0 5 1 1 0 1)
+ SF-ADJUSTMENT "Smoothness"           '(3 0 10 1 1 0 1)
  SF-ADJUSTMENT "Blur Cycles"          '(1 0 6 1 1 0 1)
  SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)

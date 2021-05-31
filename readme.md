@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org3a0c0be)
-    1.  [Overview](#org323c266)
-    2.  [Example](#orgd7bbe8f)
-    3.  [Filter](#orgafafc53)
-        1.  [General Idea](#org20d610a)
-        2.  [Script](#org3dcb6b7)
-    4.  [Previous Attemps](#org5d5e934)
-        1.  [Sketch A](#org16f0d17)
-        2.  [Sketch B](#orgc0a4f2c)
-        3.  [Comic Book A](#org2a0b019)
-        4.  [Comic Book B](#org0d65b17)
-    5.  [References](#org25ab9a4)
-2.  [Literate Programming](#org8e4cf96)
+1.  [Comic Book Filter](#org2563ccf)
+    1.  [Overview](#org5f37b6a)
+    2.  [Example](#org36e6cf7)
+    3.  [Filter](#org0cb05b4)
+        1.  [General Idea](#org9e7a379)
+        2.  [Script](#orgbf23b23)
+    4.  [Previous Attemps](#org60b429b)
+        1.  [Sketch A](#org23fd82f)
+        2.  [Sketch B](#org1777fb7)
+        3.  [Comic Book A](#org5532bf2)
+        4.  [Comic Book B](#org0a8dafc)
+    5.  [References](#orge6f468f)
+2.  [Literate Programming](#org21d133f)
 
 
 
-<a id="org3a0c0be"></a>
+<a id="org2563ccf"></a>
 
 # Comic Book Filter
 
 
-<a id="org323c266"></a>
+<a id="org5f37b6a"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ since GIMP requires several dependencies that also must be locally
 compiled.
 
 
-<a id="orgd7bbe8f"></a>
+<a id="org36e6cf7"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="orgafafc53"></a>
+<a id="org0cb05b4"></a>
 
 ## Filter
 
 
-<a id="org20d610a"></a>
+<a id="org9e7a379"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org3dcb6b7"></a>
+<a id="orgbf23b23"></a>
 
 ### Script
 
@@ -148,7 +148,7 @@ into a single script for GIMP.
          SF-DRAWABLE   "Drawable"   0             ; the layer
          SF-ADJUSTMENT "Face Colors"          '(5 2 12 1 10 0 0)
          SF-ADJUSTMENT "Background Colors"    '(24 3 64 1 10 0 0)
-         SF-ADJUSTMENT "Smoothness"           '(2 0 5 1 1 0 1)
+         SF-ADJUSTMENT "Smoothness"           '(3 0 10 1 1 0 1)
          SF-ADJUSTMENT "Blur Cycles"          '(1 0 6 1 1 0 1)
          SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
          SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
@@ -296,8 +296,10 @@ into a single script for GIMP.
                                                                                       0.75 0.875
                                                                                       1.0  1.0)))
           (let* ((detail-inv (- 1 detail))
-                 (detail-val (+ (* detail-inv 0.4) 0.6))) ; range from 1 (lowest) to 0.6 (highest)
-            (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer 12.0 1.0 0.0 detail-val))
+                 (detail-val (+ (* detail-inv 0.4) 0.6)) ; range from 1 (lowest) to 0.6 (highest)
+                 ;; mask-val range from 4 to 20 as orig image size scales to 3000
+                 (mask-val (max (min (* (/ (max orig-width orig-height) 3000.0) 20) 20) 6)))
+            (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer mask-val 1.0 0.0 detail-val))
           (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
           (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
         
@@ -683,7 +685,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org5d5e934"></a>
+<a id="org60b429b"></a>
 
 ## Previous Attemps
 
@@ -691,7 +693,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org16f0d17"></a>
+<a id="org23fd82f"></a>
 
 ### Sketch A
 
@@ -721,7 +723,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="orgc0a4f2c"></a>
+<a id="org1777fb7"></a>
 
 ### Sketch B
 
@@ -766,7 +768,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org2a0b019"></a>
+<a id="org5532bf2"></a>
 
 ### Comic Book A
 
@@ -812,7 +814,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org0d65b17"></a>
+<a id="org0a8dafc"></a>
 
 ### Comic Book B
 
@@ -845,7 +847,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org25ab9a4"></a>
+<a id="orge6f468f"></a>
 
 ## References
 
@@ -854,7 +856,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org8e4cf96"></a>
+<a id="org21d133f"></a>
 
 # Literate Programming
 
