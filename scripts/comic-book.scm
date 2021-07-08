@@ -18,7 +18,7 @@
 
 (define (script-fu-comic-book image background-layer
                               num-face-colors num-background-colors smoothness
-                              blur-cycles lightness detail fine-detail shading)
+                              lightness detail fine-detail shading)
   ;; (gimp-image-undo-group-start image)
 
   (let* ((orig-width (car (gimp-image-width image)))
@@ -44,13 +44,6 @@
       (when (> sf 1.2)
         (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
-    (let ((count 0)
-          (blur-strength (+ blur-cycles 1)))
-      (while (< count blur-cycles)
-             (plug-in-gauss RUN-NONINTERACTIVE image background-layer blur-strength blur-strength 0)
-             (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer (- blur-strength 1) 0.3 0.3)
-             (set! count (+ count 1))))
-
     (when (> lightness 0.0001)
       (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
                                                                                       0.0 0.0
@@ -74,11 +67,20 @@
                                                                                     1.0  1.0)))
         (let* ((detail-inv (- 1 detail))
                (detail-val (+ (* detail-inv 0.4) 0.6)) ; range from 1 (lowest) to 0.6 (highest)
-               ;; mask-val range from 4 to 20 as orig image size scales to 3000
-               (mask-val (max (min (* (/ (max orig-width orig-height) 3000.0) 20) 20) 6)))
+               ;; mask-val range from 4 to 25 as orig image size scales to 3000
+               (mask-val (max (min (* (/ (max orig-width orig-height) 3000.0) 30) 30) 6)))
           (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer mask-val 1.0 0.0 detail-val))
         (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
-        (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
+        (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 4 0.8 0)
+        (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
+      
+        (let* ((sketch-layer-overlay (car (gimp-layer-copy sketch-layer FALSE))))
+          (gimp-image-add-layer image sketch-layer-overlay 0)
+          (gimp-item-set-name sketch-layer "sketch overlay")
+          (gimp-image-set-active-layer image sketch-layer-overlay)
+          (plug-in-dilate RUN-NONINTERACTIVE image sketch-layer-overlay 0 0 1 0 255 0)
+          (gimp-layer-set-mode sketch-layer-overlay LAYER-MODE-SOFTLIGHT)
+          (set! sketch-layer (car (gimp-image-merge-down image sketch-layer-overlay EXPAND-AS-NECESSARY))))
       
         (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
 
@@ -314,10 +316,6 @@
                            (+ 1 smoothness (floor (/ (max width height) 800)))
                            50)
       
-      (gimp-image-set-active-layer image sketch-layer)
-      (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
-      
-      (gimp-image-set-active-layer image background-layer)
       (gimp-image-convert-rgb image)
       (when (> lightness 0.0001)
         (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
@@ -378,10 +376,9 @@
  "RGB* GRAY*"                             ; image type that the script works on
  SF-IMAGE      "Image"      0             ; the image
  SF-DRAWABLE   "Drawable"   0             ; the layer
- SF-ADJUSTMENT "Face Colors"          '(5 2 12 1 10 0 0)
- SF-ADJUSTMENT "Background Colors"    '(24 3 64 1 10 0 0)
+ SF-ADJUSTMENT "Face Colors"          '(3 2 12 1 10 0 0)
+ SF-ADJUSTMENT "Background Colors"    '(16 3 64 1 10 0 0)
  SF-ADJUSTMENT "Smoothness"           '(3 0 10 1 1 0 1)
- SF-ADJUSTMENT "Blur Cycles"          '(1 0 6 1 1 0 1)
  SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
  SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0)

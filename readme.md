@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org2563ccf)
-    1.  [Overview](#org5f37b6a)
-    2.  [Example](#org36e6cf7)
-    3.  [Filter](#org0cb05b4)
-        1.  [General Idea](#org9e7a379)
-        2.  [Script](#orgbf23b23)
-    4.  [Previous Attemps](#org60b429b)
-        1.  [Sketch A](#org23fd82f)
-        2.  [Sketch B](#org1777fb7)
-        3.  [Comic Book A](#org5532bf2)
-        4.  [Comic Book B](#org0a8dafc)
-    5.  [References](#orge6f468f)
-2.  [Literate Programming](#org21d133f)
+1.  [Comic Book Filter](#org6a9daca)
+    1.  [Overview](#org6ae6135)
+    2.  [Example](#org99b6390)
+    3.  [Filter](#org5441e46)
+        1.  [General Idea](#org384f71e)
+        2.  [Script](#orgb415d67)
+    4.  [Previous Attemps](#orgbdd226c)
+        1.  [Sketch A](#orgb93f527)
+        2.  [Sketch B](#org4063219)
+        3.  [Comic Book A](#org044feb5)
+        4.  [Comic Book B](#orgb89bc0d)
+    5.  [References](#orgc8ade92)
+2.  [Literate Programming](#org6d22b0b)
 
 
 
-<a id="org2563ccf"></a>
+<a id="org6a9daca"></a>
 
 # Comic Book Filter
 
 
-<a id="org5f37b6a"></a>
+<a id="org6ae6135"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ since GIMP requires several dependencies that also must be locally
 compiled.
 
 
-<a id="org36e6cf7"></a>
+<a id="org99b6390"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org0cb05b4"></a>
+<a id="org5441e46"></a>
 
 ## Filter
 
 
-<a id="org9e7a379"></a>
+<a id="org384f71e"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orgbf23b23"></a>
+<a id="orgb415d67"></a>
 
 ### Script
 
@@ -126,8 +126,6 @@ into a single script for GIMP.
     -   **Smoothness:** a higher value results in smoother curves where
         indexed colors meet, which is what you'd expect if the colors were
         drawn by hand
-    -   **Blur Cycles:** use a higher value to reduce noise, but higher values
-        result in blurred features
     -   **Lightness:** a higher value results in lighter colors
     -   **Detail:** a higher value results in more lines
     -   **Fine Detail:** a higher value results in more thin lines
@@ -146,10 +144,9 @@ into a single script for GIMP.
          "RGB* GRAY*"                             ; image type that the script works on
          SF-IMAGE      "Image"      0             ; the image
          SF-DRAWABLE   "Drawable"   0             ; the layer
-         SF-ADJUSTMENT "Face Colors"          '(5 2 12 1 10 0 0)
-         SF-ADJUSTMENT "Background Colors"    '(24 3 64 1 10 0 0)
+         SF-ADJUSTMENT "Face Colors"          '(3 2 12 1 10 0 0)
+         SF-ADJUSTMENT "Background Colors"    '(16 3 64 1 10 0 0)
          SF-ADJUSTMENT "Smoothness"           '(3 0 10 1 1 0 1)
-         SF-ADJUSTMENT "Blur Cycles"          '(1 0 6 1 1 0 1)
          SF-ADJUSTMENT "Lightness"            '(0.1 0 1 0.1 0.2 2 0)
          SF-ADJUSTMENT "Detail"               '(0.5 0 1 0.1 0.2 2 0)
          SF-ADJUSTMENT "Fine Detail"          '(0.5 0 1 0.1 0.2 2 0)
@@ -173,11 +170,6 @@ into a single script for GIMP.
     If we enlarge it at the beginning we shrink it back to its original
     size at the end.
     
-    Then we go through `Blur Cycles` steps of blurring and sharpening the
-    image.  The overall effect is to reduce noise, which is especially
-    problematic in low light photos, but higher values quickly lead to
-    blurry results so use this sparingly.
-    
     The next thing we do to the image is to lighten it.  We apply `curves`
     and then a `softglow` filter.  We skip both of these if the
     `lightness` parameter was set to zero.  The `curves` operation
@@ -199,7 +191,7 @@ into a single script for GIMP.
     
         (define (script-fu-comic-book image background-layer
                                       num-face-colors num-background-colors smoothness
-                                      blur-cycles lightness detail fine-detail shading)
+                                      lightness detail fine-detail shading)
           ;; (gimp-image-undo-group-start image)
         
           (let* ((orig-width (car (gimp-image-width image)))
@@ -224,13 +216,6 @@ into a single script for GIMP.
               (gimp-image-scale image width height)
               (when (> sf 1.2)
                 (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
-        
-            (let ((count 0)
-                  (blur-strength (+ blur-cycles 1)))
-              (while (< count blur-cycles)
-                     (plug-in-gauss RUN-NONINTERACTIVE image background-layer blur-strength blur-strength 0)
-                     (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer (- blur-strength 1) 0.3 0.3)
-                     (set! count (+ count 1))))
         
             (when (> lightness 0.0001)
               (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
@@ -277,9 +262,13 @@ into a single script for GIMP.
     but also results in noise in large dark areas.  To reduce that effect
     we lighten the image with a `curves` operation before the `photocopy`
     call and darken it back after using the `levels` and `sharpen`
-    operations.  We also run a `median-blur` on the layer while the image
-    is indexed to clear up some of the noise.  If `Detail` is turned down
-    to zero we skip this step entirely.
+    operations.  We also run a `median-blur` on the layer to clear up some
+    of the noise.  If `Detail` is turned down to zero we skip this step
+    entirely.
+    
+    Then we duplicate the layer and dilate the copy and then overlay it.
+    The overall effect is to reduce noise, which is especially problematic
+    in low light photos.
     
     The `photocopy` filter produces an inverted greyscale image so there's
     no need to desaturate or invert the sketch layer.  We just set its
@@ -297,11 +286,20 @@ into a single script for GIMP.
                                                                                       1.0  1.0)))
           (let* ((detail-inv (- 1 detail))
                  (detail-val (+ (* detail-inv 0.4) 0.6)) ; range from 1 (lowest) to 0.6 (highest)
-                 ;; mask-val range from 4 to 20 as orig image size scales to 3000
-                 (mask-val (max (min (* (/ (max orig-width orig-height) 3000.0) 20) 20) 6)))
+                 ;; mask-val range from 4 to 25 as orig image size scales to 3000
+                 (mask-val (max (min (* (/ (max orig-width orig-height) 3000.0) 30) 30) 6)))
             (plug-in-photocopy RUN-NONINTERACTIVE image sketch-layer mask-val 1.0 0.0 detail-val))
           (gimp-drawable-levels sketch-layer HISTOGRAM-VALUE 0.7 1 TRUE 1 0 1 TRUE)
-          (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 2 0.5 0)
+          (plug-in-unsharp-mask RUN-NONINTERACTIVE image sketch-layer 4 0.8 0)
+          (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
+        
+          (let* ((sketch-layer-overlay (car (gimp-layer-copy sketch-layer FALSE))))
+            (gimp-image-add-layer image sketch-layer-overlay 0)
+            (gimp-item-set-name sketch-layer "sketch overlay")
+            (gimp-image-set-active-layer image sketch-layer-overlay)
+            (plug-in-dilate RUN-NONINTERACTIVE image sketch-layer-overlay 0 0 1 0 255 0)
+            (gimp-layer-set-mode sketch-layer-overlay LAYER-MODE-SOFTLIGHT)
+            (set! sketch-layer (car (gimp-image-merge-down image sketch-layer-overlay EXPAND-AS-NECESSARY))))
         
           (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
     
@@ -458,11 +456,6 @@ into a single script for GIMP.
     parameter.  `median-blur` isn't available in GIMP's procedure browser
     so I hacked my version to provide it.
     
-    Then we blur the sketch layer to clean up the lines and reduce the
-    noise from the photocopy filter.  We do this here and not while we're
-    working on the sketch layer because we need to do it while the image
-    is indexed.
-    
     For the last step here we give the colors a little boost and lighten
     the image.  This isn't necessary but illustrations are often brighter
     and more vivid than reality.  The amount of brightening is controlled
@@ -475,10 +468,6 @@ into a single script for GIMP.
                              (+ 1 smoothness (floor (/ (max width height) 800)))
                              50)
         
-        (gimp-image-set-active-layer image sketch-layer)
-        (plug-in-median-blur RUN-NONINTERACTIVE image sketch-layer 1 50)
-        
-        (gimp-image-set-active-layer image background-layer)
         (gimp-image-convert-rgb image)
         (when (> lightness 0.0001)
           (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
@@ -685,7 +674,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org60b429b"></a>
+<a id="orgbdd226c"></a>
 
 ## Previous Attemps
 
@@ -693,7 +682,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org23fd82f"></a>
+<a id="orgb93f527"></a>
 
 ### Sketch A
 
@@ -723,7 +712,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org1777fb7"></a>
+<a id="org4063219"></a>
 
 ### Sketch B
 
@@ -768,7 +757,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org5532bf2"></a>
+<a id="org044feb5"></a>
 
 ### Comic Book A
 
@@ -814,7 +803,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org0a8dafc"></a>
+<a id="orgb89bc0d"></a>
 
 ### Comic Book B
 
@@ -847,7 +836,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orge6f468f"></a>
+<a id="orgc8ade92"></a>
 
 ## References
 
@@ -856,7 +845,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org21d133f"></a>
+<a id="org6d22b0b"></a>
 
 # Literate Programming
 
