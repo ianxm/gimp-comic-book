@@ -26,12 +26,13 @@
          (width orig-width)
          (height orig-height)
          (min-length 1500)
+         (tolerance 0.0001)
          (sf 1)
          (selection -1))
 
     (if (eqv? (car (gimp-selection-is-empty image)) TRUE)
         (set! selection -1)
-        (begin 
+        (begin
           (set! selection (car (gimp-selection-save image)))
           (gimp-selection-none image)))
 
@@ -44,7 +45,7 @@
       (when (> sf 1.2)
         (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
 
-    (when (> lightness 0.0001)
+    (when (> lightness tolerance)
       (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
                                                                                       0.0 0.0
                                                                                       0.05 0.0
@@ -55,7 +56,7 @@
 
     (let* ((trace-layer (car (gimp-layer-copy background-layer FALSE)))
            (sketch-layer (car (gimp-layer-copy background-layer FALSE))))
-      (when (> detail 0.0001)
+      (when (> detail tolerance)
         (gimp-image-add-layer image sketch-layer 0)
         (gimp-item-set-name sketch-layer "sketch")
         (gimp-image-set-active-layer image sketch-layer)
@@ -84,7 +85,7 @@
       
         (gimp-layer-set-mode sketch-layer LAYER-MODE-MULTIPLY))
 
-      (when (> fine-detail 0.0001)
+      (when (> fine-detail tolerance)
         (gimp-image-add-layer image trace-layer 0)
         (gimp-item-set-name trace-layer "trace")
         (gimp-image-set-active-layer image trace-layer)
@@ -125,7 +126,7 @@
         (gimp-drawable-invert trace-layer TRUE)
         (gimp-layer-set-mode trace-layer LAYER-MODE-MULTIPLY))
 
-      (when (> shading 0.0001)
+      (when (> shading tolerance)
         (let* ((hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
                                                     "" 100 LAYER-MODE-MULTIPLY)))
                (shading-layer-pre (car (gimp-layer-copy background-layer FALSE)))
@@ -254,42 +255,60 @@
             (gimp-image-delete secondary-image)
       
             ;; prune excess colors
-            (let* ((face-prune-range 255)
-                   (bw-prune-range 255)
+            (let* ((prune-range 255)
+                   (bump-range 255)
                    (black '(0 0 0))
                    (white '(255 255 255))
-                   (c1 face-colors)
-                   (c2 '()))
-              ;; find prune range
-              (while (not (null? c1))
-                     (set! c2 (cdr c1))
-                     (while (not (null? c2))
-                            (set! face-prune-range (min (script-fu-comic-dist (car c1) (car c2)) face-prune-range))
-                            (set! c2 (cdr c2)))
-                     (set! c1 (cdr c1)))
-              (set! face-prune-range (/ face-prune-range 2))
-              (set! bw-prune-range (/ face-prune-range 8))
+                   (closest '(() . 0)) ; ( color . dist ) of the closest point to the current point
+                   (push-sf 0) ; the scale factor to use when pushing points out
+                   (any-bumped? TRUE)) ; continue filtering / bumping until stable
+            
+              (let* ((c1 face-colors)
+                     (c2 '()))
+                (while (not (null? c1))
+                       (set! c2 (cdr c1))
+                       (while (not (null? c2))
+                              (set! bump-range (min (script-fu-comic-dist (car c1) (car c2)) bump-range))
+                              (set! c2 (cdr c2)))
+                       (set! c1 (cdr c1)))
+                (set! prune-range (/ bump-range 4))
+                (set! bump-range (/ bump-range 2)))
             
               ;; remove black and white from face colors
               (set! face-colors (foldr (lambda (x y)
-                                         (if (or (< (script-fu-comic-dist y black) bw-prune-range)
-                                                 (< (script-fu-comic-dist y white) bw-prune-range))
+                                         (if (or (< (script-fu-comic-dist y black) prune-range)
+                                                 (< (script-fu-comic-dist y white) prune-range))
                                              x
                                              (cons y x)))
                                        '()
                                        face-colors))
             
               ;; remove black, white and any colors within prune-range of face colors from background colors
-              (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
-                                               (if (or (< (script-fu-comic-dist y black) bw-prune-range)
-                                                       (< (script-fu-comic-dist y white) bw-prune-range)
-                                                       (any? (lambda (z) ; z is face point
-                                                               (< (script-fu-comic-dist y z) face-prune-range))
-                                                             face-colors))
-                                                   x
-                                                   (cons y x)))
-                                             '()
-                                             background-colors)))
+              (while (= any-bumped? TRUE)
+                     (set! any-bumped? FALSE)
+                     (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
+                                                      (set! closest (script-fu-comic-closest y face-colors))
+                                                      (set! push-sf (/ bump-range (cdr closest)))
+                                                      (cond
+                                                       ;; way too close, drop it
+                                                       ((or (< (script-fu-comic-dist y black) prune-range)
+                                                            (< (script-fu-comic-dist y white) prune-range)
+                                                            (< (cdr closest) (- prune-range tolerance)))
+                                                        x)
+                                                       ;; a bit too close, push it out
+                                                       ((or (< (cdr closest) (- bump-range tolerance)))
+                                                        (set! any-bumped? TRUE)
+                                                        (cons
+                                                         (list
+                                                          (+ (nth 0 (car closest)) (* (- (nth 0 y) (nth 0 (car closest))) push-sf))  ; x
+                                                          (+ (nth 1 (car closest)) (* (- (nth 1 y) (nth 1 (car closest))) push-sf))  ; y
+                                                          (+ (nth 2 (car closest)) (* (- (nth 2 y) (nth 2 (car closest))) push-sf))) ; z
+                                                         x))
+                                                       ;; far enough, keep it
+                                                       (TRUE
+                                                        (cons y x))))
+                                                    '()
+                                                    background-colors))))
       
             ;; combine colors in new palette
             (gimp-selection-none image)
@@ -317,7 +336,7 @@
                            50)
       
       (gimp-image-convert-rgb image)
-      (when (> lightness 0.0001)
+      (when (> lightness tolerance)
         (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
 
       (gimp-drawable-levels trace-layer HISTOGRAM-VALUE 0.4 1 TRUE 1 0 1 TRUE)
@@ -335,6 +354,19 @@
 
   ;; (gimp-image-undo-group-end image)
   (gimp-displays-flush))
+
+(define (script-fu-comic-closest p points)
+  "Find the closest point in POINTS to point P"
+  (let* ((closest '())
+         (closest-dist 255)
+         (current-dist 255))
+    (while (not (null? points))
+           (set! current-dist (script-fu-comic-dist p (car points)))
+           (when (< current-dist closest-dist)
+             (set! closest (car points))
+             (set! closest-dist current-dist))
+           (set! points (cdr points)))
+    (cons closest closest-dist)))
 
 (define (script-fu-comic-dist a b)
   "Compute distance between three dimensional points A and B"

@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org6a9daca)
-    1.  [Overview](#org6ae6135)
-    2.  [Example](#org99b6390)
-    3.  [Filter](#org5441e46)
-        1.  [General Idea](#org384f71e)
-        2.  [Script](#orgb415d67)
-    4.  [Previous Attemps](#orgbdd226c)
-        1.  [Sketch A](#orgb93f527)
-        2.  [Sketch B](#org4063219)
-        3.  [Comic Book A](#org044feb5)
-        4.  [Comic Book B](#orgb89bc0d)
-    5.  [References](#orgc8ade92)
-2.  [Literate Programming](#org6d22b0b)
+1.  [Comic Book Filter](#orgcf97ec5)
+    1.  [Overview](#org9a969b1)
+    2.  [Example](#org8a33802)
+    3.  [Filter](#orgdeaf188)
+        1.  [General Idea](#orgc44f8fb)
+        2.  [Script](#orgad6a581)
+    4.  [Previous Attemps](#org5138619)
+        1.  [Sketch A](#org137a255)
+        2.  [Sketch B](#org975eb14)
+        3.  [Comic Book A](#org9b8991d)
+        4.  [Comic Book B](#org4a127d7)
+    5.  [References](#org8658ecc)
+2.  [Literate Programming](#org772e9d2)
 
 
 
-<a id="org6a9daca"></a>
+<a id="orgcf97ec5"></a>
 
 # Comic Book Filter
 
 
-<a id="org6ae6135"></a>
+<a id="org9a969b1"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ since GIMP requires several dependencies that also must be locally
 compiled.
 
 
-<a id="org99b6390"></a>
+<a id="org8a33802"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="org5441e46"></a>
+<a id="orgdeaf188"></a>
 
 ## Filter
 
 
-<a id="org384f71e"></a>
+<a id="orgc44f8fb"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orgb415d67"></a>
+<a id="orgad6a581"></a>
 
 ### Script
 
@@ -199,12 +199,13 @@ into a single script for GIMP.
                  (width orig-width)
                  (height orig-height)
                  (min-length 1500)
+                 (tolerance 0.0001)
                  (sf 1)
                  (selection -1))
         
             (if (eqv? (car (gimp-selection-is-empty image)) TRUE)
                 (set! selection -1)
-                (begin 
+                (begin
                   (set! selection (car (gimp-selection-save image)))
                   (gimp-selection-none image)))
         
@@ -217,7 +218,7 @@ into a single script for GIMP.
               (when (> sf 1.2)
                 (plug-in-unsharp-mask RUN-NONINTERACTIVE image background-layer 3 0.5 0)))
         
-            (when (> lightness 0.0001)
+            (when (> lightness tolerance)
               (gimp-drawable-curves-spline background-layer HISTOGRAM-VALUE 10 (list->vector (list
                                                                                               0.0 0.0
                                                                                               0.05 0.0
@@ -266,15 +267,16 @@ into a single script for GIMP.
     of the noise.  If `Detail` is turned down to zero we skip this step
     entirely.
     
-    Then we duplicate the layer and dilate the copy and then overlay it.
+    Then we duplicate the layer and `dilate` the copy and then overlay it.
     The overall effect is to reduce noise, which is especially problematic
-    in low light photos.
+    in low light photos. This also thins out the lines produced by the
+    photocopy filter.
     
     The `photocopy` filter produces an inverted greyscale image so there's
     no need to desaturate or invert the sketch layer.  We just set its
     mode to `MULTIPLY` and are done here.
     
-        (when (> detail 0.0001)
+        (when (> detail tolerance)
           (gimp-image-add-layer image sketch-layer 0)
           (gimp-item-set-name sketch-layer "sketch")
           (gimp-image-set-active-layer image sketch-layer)
@@ -325,7 +327,7 @@ into a single script for GIMP.
     Finally we invert the trace layer and set its mode to `MULTIPLY` so
     that the lines show up overlayed on the background.
     
-        (when (> fine-detail 0.0001)
+        (when (> fine-detail tolerance)
           (gimp-image-add-layer image trace-layer 0)
           (gimp-item-set-name trace-layer "trace")
           (gimp-image-set-active-layer image trace-layer)
@@ -379,7 +381,7 @@ into a single script for GIMP.
     the hair instead of just going diagonally.  I've not found a way to
     prevent this, though.
     
-        (when (> shading 0.0001)
+        (when (> shading tolerance)
           (let* ((hatching-layer (car (gimp-layer-new image width height RGB-IMAGE
                                                       "" 100 LAYER-MODE-MULTIPLY)))
                  (shading-layer-pre (car (gimp-layer-copy background-layer FALSE)))
@@ -469,7 +471,7 @@ into a single script for GIMP.
                              50)
         
         (gimp-image-convert-rgb image)
-        (when (> lightness 0.0001)
+        (when (> lightness tolerance)
           (gimp-drawable-hue-saturation background-layer HUE-RANGE-ALL 0 0 (+ (* lightness 20) 12) 0))
     
     When we indexed the colors the overlays may have been lightened, but
@@ -569,50 +571,79 @@ into a single script for GIMP.
     
     If there are background colors which are too close to face colors,
     then in the final indexing run those colors may be used on the face.
-    To prevent this, we determine remove any background colors that are
-    "too close" to any face colors.  We do this by computing the distance
-    between the colors in 3d RGB space.  We define "too close" as being
-    less than half the minimum distance between face colors, since our
-    intent is that no background colors will get "between" face colors in
-    the palette.
+    To prevent this, we move or remove any background colors that are "too
+    close" to any face colors.  We do this by computing the distance
+    between the colors in 3D RGB space.  We define "too close" as being
+    less than half of the minimum distance between face colors
+    (`bump-range`) since our intent is that no background colors will get
+    "between" face colors in the palette.
+    
+    Points that are very close (half of `bump-range`, which is computed as
+    `prune-range`) then we remove them. Points that aren't as close
+    (greater than `prune-range` but still less then `bump-range`) then we
+    push them away from the face color until its distance is `bump-range`.
     
         ;; prune excess colors
-        (let* ((face-prune-range 255)
-               (bw-prune-range 255)
+        (let* ((prune-range 255)
+               (bump-range 255)
                (black '(0 0 0))
                (white '(255 255 255))
-               (c1 face-colors)
-               (c2 '()))
-          ;; find prune range
-          (while (not (null? c1))
-                 (set! c2 (cdr c1))
-                 (while (not (null? c2))
-                        (set! face-prune-range (min (script-fu-comic-dist (car c1) (car c2)) face-prune-range))
-                        (set! c2 (cdr c2)))
-                 (set! c1 (cdr c1)))
-          (set! face-prune-range (/ face-prune-range 2))
-          (set! bw-prune-range (/ face-prune-range 8))
+               (closest '(() . 0)) ; ( color . dist ) of the closest point to the current point
+               (push-sf 0) ; the scale factor to use when pushing points out
+               (any-bumped? TRUE)) ; continue filtering / bumping until stable
+        
+          <<find-prune-range>>
         
           ;; remove black and white from face colors
           (set! face-colors (foldr (lambda (x y)
-                                     (if (or (< (script-fu-comic-dist y black) bw-prune-range)
-                                             (< (script-fu-comic-dist y white) bw-prune-range))
+                                     (if (or (< (script-fu-comic-dist y black) prune-range)
+                                             (< (script-fu-comic-dist y white) prune-range))
                                          x
                                          (cons y x)))
                                    '()
                                    face-colors))
         
           ;; remove black, white and any colors within prune-range of face colors from background colors
-          (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
-                                           (if (or (< (script-fu-comic-dist y black) bw-prune-range)
-                                                   (< (script-fu-comic-dist y white) bw-prune-range)
-                                                   (any? (lambda (z) ; z is face point
-                                                           (< (script-fu-comic-dist y z) face-prune-range))
-                                                         face-colors))
-                                               x
-                                               (cons y x)))
-                                         '()
-                                         background-colors)))
+          (while (= any-bumped? TRUE)
+                 (set! any-bumped? FALSE)
+                 (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
+                                                  (set! closest (script-fu-comic-closest y face-colors))
+                                                  (set! push-sf (/ bump-range (cdr closest)))
+                                                  (cond
+                                                   ;; way too close, drop it
+                                                   ((or (< (script-fu-comic-dist y black) prune-range)
+                                                        (< (script-fu-comic-dist y white) prune-range)
+                                                        (< (cdr closest) (- prune-range tolerance)))
+                                                    x)
+                                                   ;; a bit too close, push it out
+                                                   ((or (< (cdr closest) (- bump-range tolerance)))
+                                                    (set! any-bumped? TRUE)
+                                                    (cons
+                                                     (list
+                                                      (+ (nth 0 (car closest)) (* (- (nth 0 y) (nth 0 (car closest))) push-sf))  ; x
+                                                      (+ (nth 1 (car closest)) (* (- (nth 1 y) (nth 1 (car closest))) push-sf))  ; y
+                                                      (+ (nth 2 (car closest)) (* (- (nth 2 y) (nth 2 (car closest))) push-sf))) ; z
+                                                     x))
+                                                   ;; far enough, keep it
+                                                   (TRUE
+                                                    (cons y x))))
+                                                '()
+                                                background-colors))))
+    
+    This checks the distance between all pairs of points and returns half
+    the smallest distance as `bump-range` and half of that as
+    `prune-range`.
+    
+        (let* ((c1 face-colors)
+               (c2 '()))
+          (while (not (null? c1))
+                 (set! c2 (cdr c1))
+                 (while (not (null? c2))
+                        (set! bump-range (min (script-fu-comic-dist (car c1) (car c2)) bump-range))
+                        (set! c2 (cdr c2)))
+                 (set! c1 (cdr c1)))
+          (set! prune-range (/ bump-range 4))
+          (set! bump-range (/ bump-range 2)))
     
     Finally we merge the lists of colors into the final palette and index
     the whole image with it.  While building the palette we add black and
@@ -643,6 +674,19 @@ into a single script for GIMP.
     These are some helper functions used while merging the colors found
     during the two indexing runs to form the final palette.
     
+        (define (script-fu-comic-closest p points)
+          "Find the closest point in POINTS to point P"
+          (let* ((closest '())
+                 (closest-dist 255)
+                 (current-dist 255))
+            (while (not (null? points))
+                   (set! current-dist (script-fu-comic-dist p (car points)))
+                   (when (< current-dist closest-dist)
+                     (set! closest (car points))
+                     (set! closest-dist current-dist))
+                   (set! points (cdr points)))
+            (cons closest closest-dist)))
+        
         (define (script-fu-comic-dist a b)
           "Compute distance between three dimensional points A and B"
           (sqrt (+  (expt (- (nth 0 b) (nth 0 a)) 2)
@@ -674,7 +718,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="orgbdd226c"></a>
+<a id="org5138619"></a>
 
 ## Previous Attemps
 
@@ -682,7 +726,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgb93f527"></a>
+<a id="org137a255"></a>
 
 ### Sketch A
 
@@ -712,7 +756,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org4063219"></a>
+<a id="org975eb14"></a>
 
 ### Sketch B
 
@@ -757,7 +801,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org044feb5"></a>
+<a id="org9b8991d"></a>
 
 ### Comic Book A
 
@@ -803,7 +847,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orgb89bc0d"></a>
+<a id="org4a127d7"></a>
 
 ### Comic Book B
 
@@ -836,7 +880,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgc8ade92"></a>
+<a id="org8658ecc"></a>
 
 ## References
 
@@ -845,7 +889,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org6d22b0b"></a>
+<a id="org772e9d2"></a>
 
 # Literate Programming
 
