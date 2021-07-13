@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#orgcf97ec5)
-    1.  [Overview](#org9a969b1)
-    2.  [Example](#org8a33802)
-    3.  [Filter](#orgdeaf188)
-        1.  [General Idea](#orgc44f8fb)
-        2.  [Script](#orgad6a581)
-    4.  [Previous Attemps](#org5138619)
-        1.  [Sketch A](#org137a255)
-        2.  [Sketch B](#org975eb14)
-        3.  [Comic Book A](#org9b8991d)
-        4.  [Comic Book B](#org4a127d7)
-    5.  [References](#org8658ecc)
-2.  [Literate Programming](#org772e9d2)
+1.  [Comic Book Filter](#org479d326)
+    1.  [Overview](#orgb6f1a5f)
+    2.  [Example](#org83e843d)
+    3.  [Filter](#orgc8a9d37)
+        1.  [General Idea](#org4f357fd)
+        2.  [Script](#org9efa5d6)
+    4.  [Previous Attemps](#org8d37707)
+        1.  [Sketch A](#orgdaa15bc)
+        2.  [Sketch B](#org6121227)
+        3.  [Comic Book A](#orga78482c)
+        4.  [Comic Book B](#org761130c)
+    5.  [References](#org40af99a)
+2.  [Literate Programming](#org42f2575)
 
 
 
-<a id="orgcf97ec5"></a>
+<a id="org479d326"></a>
 
 # Comic Book Filter
 
 
-<a id="org9a969b1"></a>
+<a id="orgb6f1a5f"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ since GIMP requires several dependencies that also must be locally
 compiled.
 
 
-<a id="org8a33802"></a>
+<a id="org83e843d"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="orgdeaf188"></a>
+<a id="orgc8a9d37"></a>
 
 ## Filter
 
 
-<a id="orgc44f8fb"></a>
+<a id="org4f357fd"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="orgad6a581"></a>
+<a id="org9efa5d6"></a>
 
 ### Script
 
@@ -299,7 +299,8 @@ into a single script for GIMP.
             (gimp-image-add-layer image sketch-layer-overlay 0)
             (gimp-item-set-name sketch-layer "sketch overlay")
             (gimp-image-set-active-layer image sketch-layer-overlay)
-            (plug-in-dilate RUN-NONINTERACTIVE image sketch-layer-overlay 0 0 1 0 255 0)
+            (plug-in-dilate RUN-NONINTERACTIVE image sketch-layer-overlay 1 0 1 0 255 255)
+            (plug-in-erode RUN-NONINTERACTIVE image sketch-layer-overlay 1 0 1 0 255 255)
             (gimp-layer-set-mode sketch-layer-overlay LAYER-MODE-SOFTLIGHT)
             (set! sketch-layer (car (gimp-image-merge-down image sketch-layer-overlay EXPAND-AS-NECESSARY))))
         
@@ -466,9 +467,17 @@ into a single script for GIMP.
         (gimp-image-set-active-layer image background-layer)
         <<comic-index>>
         
-        (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                             (+ 1 smoothness (floor (/ (max width height) 800)))
-                             50)
+        (when (> smoothness 0)
+          (when (<> selection -1)
+            (gimp-image-select-item image CHANNEL-OP-ADD selection)
+            (plug-in-median-blur RUN-NONINTERACTIVE image background-layer 2 50)
+            (gimp-selection-invert image)
+            (gimp-selection-grow image 1))
+          (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
+                               (+ 1 smoothness (floor (/ (max width height) 800)))
+                               50)
+          (when (<> selection -1)
+            (gimp-selection-none image)))
         
         (gimp-image-convert-rgb image)
         (when (> lightness tolerance)
@@ -718,7 +727,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org5138619"></a>
+<a id="org8d37707"></a>
 
 ## Previous Attemps
 
@@ -726,7 +735,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="org137a255"></a>
+<a id="orgdaa15bc"></a>
 
 ### Sketch A
 
@@ -756,7 +765,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org975eb14"></a>
+<a id="org6121227"></a>
 
 ### Sketch B
 
@@ -801,7 +810,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org9b8991d"></a>
+<a id="orga78482c"></a>
 
 ### Comic Book A
 
@@ -847,7 +856,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org4a127d7"></a>
+<a id="org761130c"></a>
 
 ### Comic Book B
 
@@ -880,7 +889,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org8658ecc"></a>
+<a id="org40af99a"></a>
 
 ## References
 
@@ -889,7 +898,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org772e9d2"></a>
+<a id="org42f2575"></a>
 
 # Literate Programming
 

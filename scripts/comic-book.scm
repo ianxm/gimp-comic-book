@@ -79,7 +79,8 @@
           (gimp-image-add-layer image sketch-layer-overlay 0)
           (gimp-item-set-name sketch-layer "sketch overlay")
           (gimp-image-set-active-layer image sketch-layer-overlay)
-          (plug-in-dilate RUN-NONINTERACTIVE image sketch-layer-overlay 0 0 1 0 255 0)
+          (plug-in-dilate RUN-NONINTERACTIVE image sketch-layer-overlay 1 0 1 0 255 255)
+          (plug-in-erode RUN-NONINTERACTIVE image sketch-layer-overlay 1 0 1 0 255 255)
           (gimp-layer-set-mode sketch-layer-overlay LAYER-MODE-SOFTLIGHT)
           (set! sketch-layer (car (gimp-image-merge-down image sketch-layer-overlay EXPAND-AS-NECESSARY))))
       
@@ -331,9 +332,17 @@
               (gimp-palette-delete palette-name))
             ))
       
-      (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
-                           (+ 1 smoothness (floor (/ (max width height) 800)))
-                           50)
+      (when (> smoothness 0)
+        (when (<> selection -1)
+          (gimp-image-select-item image CHANNEL-OP-ADD selection)
+          (plug-in-median-blur RUN-NONINTERACTIVE image background-layer 2 50)
+          (gimp-selection-invert image)
+          (gimp-selection-grow image 1))
+        (plug-in-median-blur RUN-NONINTERACTIVE image background-layer
+                             (+ 1 smoothness (floor (/ (max width height) 800)))
+                             50)
+        (when (<> selection -1)
+          (gimp-selection-none image)))
       
       (gimp-image-convert-rgb image)
       (when (> lightness tolerance)
