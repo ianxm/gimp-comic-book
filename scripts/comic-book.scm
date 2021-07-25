@@ -289,7 +289,6 @@
                      (set! any-bumped? FALSE)
                      (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
                                                       (set! closest (script-fu-comic-closest y face-colors))
-                                                      (set! push-sf (/ bump-range (cdr closest)))
                                                       (cond
                                                        ;; way too close, drop it
                                                        ((or (< (script-fu-comic-dist y black) prune-range)
@@ -299,6 +298,7 @@
                                                        ;; a bit too close, push it out
                                                        ((or (< (cdr closest) (- bump-range tolerance)))
                                                         (set! any-bumped? TRUE)
+                                                        (set! push-sf (/ bump-range (cdr closest)))
                                                         (cons
                                                          (list
                                                           (+ (nth 0 (car closest)) (* (- (nth 0 y) (nth 0 (car closest))) push-sf))  ; x

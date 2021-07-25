@@ -1,28 +1,28 @@
 
 # Table of Contents
 
-1.  [Comic Book Filter](#org479d326)
-    1.  [Overview](#orgb6f1a5f)
-    2.  [Example](#org83e843d)
-    3.  [Filter](#orgc8a9d37)
-        1.  [General Idea](#org4f357fd)
-        2.  [Script](#org9efa5d6)
-    4.  [Previous Attemps](#org8d37707)
-        1.  [Sketch A](#orgdaa15bc)
-        2.  [Sketch B](#org6121227)
-        3.  [Comic Book A](#orga78482c)
-        4.  [Comic Book B](#org761130c)
-    5.  [References](#org40af99a)
-2.  [Literate Programming](#org42f2575)
+1.  [Comic Book Filter](#orgadee248)
+    1.  [Overview](#orgd724c42)
+    2.  [Example](#org0acbd7b)
+    3.  [Filter](#orgcaf1fa9)
+        1.  [General Idea](#orgbb46d50)
+        2.  [Script](#org33c0359)
+    4.  [Previous Attemps](#org1b2f9d9)
+        1.  [Sketch A](#org1a483c3)
+        2.  [Sketch B](#orgf8901fa)
+        3.  [Comic Book A](#org5276df5)
+        4.  [Comic Book B](#org2094a2a)
+    5.  [References](#orgb6fd4a9)
+2.  [Literate Programming](#orgb957424)
 
 
 
-<a id="org479d326"></a>
+<a id="orgadee248"></a>
 
 # Comic Book Filter
 
 
-<a id="orgb6f1a5f"></a>
+<a id="orgd724c42"></a>
 
 ## Overview
 
@@ -41,7 +41,7 @@ since GIMP requires several dependencies that also must be locally
 compiled.
 
 
-<a id="org83e843d"></a>
+<a id="org0acbd7b"></a>
 
 ## Example
 
@@ -62,12 +62,12 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="orgc8a9d37"></a>
+<a id="orgcaf1fa9"></a>
 
 ## Filter
 
 
-<a id="org4f357fd"></a>
+<a id="orgbb46d50"></a>
 
 ### General Idea
 
@@ -86,7 +86,7 @@ skin tones.
 The final script is [here](scripts/comic-book.scm).
 
 
-<a id="org9efa5d6"></a>
+<a id="org33c0359"></a>
 
 ### Script
 
@@ -617,7 +617,6 @@ into a single script for GIMP.
                  (set! any-bumped? FALSE)
                  (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
                                                   (set! closest (script-fu-comic-closest y face-colors))
-                                                  (set! push-sf (/ bump-range (cdr closest)))
                                                   (cond
                                                    ;; way too close, drop it
                                                    ((or (< (script-fu-comic-dist y black) prune-range)
@@ -627,6 +626,7 @@ into a single script for GIMP.
                                                    ;; a bit too close, push it out
                                                    ((or (< (cdr closest) (- bump-range tolerance)))
                                                     (set! any-bumped? TRUE)
+                                                    (set! push-sf (/ bump-range (cdr closest)))
                                                     (cons
                                                      (list
                                                       (+ (nth 0 (car closest)) (* (- (nth 0 y) (nth 0 (car closest))) push-sf))  ; x
@@ -727,7 +727,7 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org8d37707"></a>
+<a id="org1b2f9d9"></a>
 
 ## Previous Attemps
 
@@ -735,7 +735,7 @@ I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
 
-<a id="orgdaa15bc"></a>
+<a id="org1a483c3"></a>
 
 ### Sketch A
 
@@ -765,7 +765,7 @@ This is an example:
         -   set mode DIVIDE
 
 
-<a id="org6121227"></a>
+<a id="orgf8901fa"></a>
 
 ### Sketch B
 
@@ -810,7 +810,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="orga78482c"></a>
+<a id="org5276df5"></a>
 
 ### Comic Book A
 
@@ -856,7 +856,7 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org761130c"></a>
+<a id="org2094a2a"></a>
 
 ### Comic Book B
 
@@ -889,7 +889,7 @@ This is an example:
         -   merge visible layers
 
 
-<a id="org40af99a"></a>
+<a id="orgb6fd4a9"></a>
 
 ## References
 
@@ -898,7 +898,7 @@ This is an example:
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
 
-<a id="org42f2575"></a>
+<a id="orgb957424"></a>
 
 # Literate Programming
 

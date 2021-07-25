@@ -594,9 +594,9 @@ push them away from the face color until its distance is =bump-range=.
          (closest '(() . 0)) ; ( color . dist ) of the closest point to the current point
          (push-sf 0) ; the scale factor to use when pushing points out
          (any-bumped? TRUE)) ; continue filtering / bumping until stable
-
+  
     <<find-prune-range>>
-
+  
     ;; remove black and white from face colors
     (set! face-colors (foldr (lambda (x y)
                                (if (or (< (script-fu-comic-dist y black) prune-range)
@@ -605,13 +605,12 @@ push them away from the face color until its distance is =bump-range=.
                                    (cons y x)))
                              '()
                              face-colors))
-
+  
     ;; remove black, white and any colors within prune-range of face colors from background colors
     (while (= any-bumped? TRUE)
            (set! any-bumped? FALSE)
            (set! background-colors (foldr (lambda (x y) ; y is current item, x is list
                                             (set! closest (script-fu-comic-closest y face-colors))
-                                            (set! push-sf (/ bump-range (cdr closest)))
                                             (cond
                                              ;; way too close, drop it
                                              ((or (< (script-fu-comic-dist y black) prune-range)
@@ -621,6 +620,7 @@ push them away from the face color until its distance is =bump-range=.
                                              ;; a bit too close, push it out
                                              ((or (< (cdr closest) (- bump-range tolerance)))
                                               (set! any-bumped? TRUE)
+                                              (set! push-sf (/ bump-range (cdr closest)))
                                               (cons
                                                (list
                                                 (+ (nth 0 (car closest)) (* (- (nth 0 y) (nth 0 (car closest))) push-sf))  ; x
