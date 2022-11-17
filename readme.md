@@ -39,6 +39,8 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
+<a id="orga03142c"></a>
+
 ## Installation and Usage
 
 To install, basically you just copy [the script](https://raw.githubusercontent.com/ianxm/gimp-comic-book/main/scripts/comic-book.scm) to your local plugin
@@ -49,7 +51,19 @@ better if you select their faces before running the filter. The
 ellipse select tool works well for this.
 
 Run the filter by choosing it from the **Filters** > **Artistic**
-menu. The options are described in the [register section](#org7d1c8fb).
+menu. The options are:
+
+-   **Face Colors:** The number of colors to choose for people's faces
+    (only used if there is a selection)
+-   **Background Colors:** The number of colors to choose for the rest of
+    the image
+-   **Smoothness:** a higher value results in smoother curves where
+    indexed colors meet, which is what you'd expect if the colors were
+    drawn by hand
+-   **Lightness:** a higher value results in lighter colors
+-   **Detail:** a higher value results in more lines
+-   **Fine Detail:** a higher value results in more thin lines
+-   **Shading:** a higher value results in more diagonal shading lines
 
 
 ## Filter
@@ -101,19 +115,8 @@ into a single script for GIMP.
 
     This registers the script with GIMP and configures the dialog with the
     parameters that will be passed to the filter.  Everything is
-    boilerblate except seven of the parameters, which I'll go over now.
-    
-    -   **Face Colors:** The number of colors to choose for people's faces
-        (only used if there is a selection)
-    -   **Background Colors:** The number of colors to choose for the rest of
-        the image
-    -   **Smoothness:** a higher value results in smoother curves where
-        indexed colors meet, which is what you'd expect if the colors were
-        drawn by hand
-    -   **Lightness:** a higher value results in lighter colors
-    -   **Detail:** a higher value results in more lines
-    -   **Fine Detail:** a higher value results in more thin lines
-    -   **Shading:** a higher value results in more diagonal shading lines
+    boilerblate except for some of the parameters, which were described in
+    the [Installation and Usage](#orga03142c) section above.
     
     The meaning of the values we set is explained in [section 3.4.8 of the
     GIMP doc](https://docs.gimp.org/2.8/en/gimp-using-script-fu-tutorial-first-script.html).

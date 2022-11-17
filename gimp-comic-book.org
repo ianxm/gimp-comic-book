@@ -42,7 +42,19 @@ better if you select their faces before running the filter. The
 ellipse select tool works well for this.
 
 Run the filter by choosing it from the *Filters* > *Artistic*
-menu. The options are described in the [[*register][register section]].
+menu. The options are:
+
+- Face Colors :: The number of colors to choose for people's faces
+  (only used if there is a selection)
+- Background Colors :: The number of colors to choose for the rest of
+  the image
+- Smoothness :: a higher value results in smoother curves where
+  indexed colors meet, which is what you'd expect if the colors were
+  drawn by hand
+- Lightness :: a higher value results in lighter colors
+- Detail :: a higher value results in more lines
+- Fine Detail :: a higher value results in more thin lines
+- Shading :: a higher value results in more diagonal shading lines
 
 ** Filter
 *** General Idea
@@ -90,19 +102,8 @@ This is the GPLv3 software license.  We add it near the top of each script.
 **** register
 This registers the script with GIMP and configures the dialog with the
 parameters that will be passed to the filter.  Everything is
-boilerblate except seven of the parameters, which I'll go over now.
-
-- Face Colors :: The number of colors to choose for people's faces
-  (only used if there is a selection)
-- Background Colors :: The number of colors to choose for the rest of
-  the image
-- Smoothness :: a higher value results in smoother curves where
-  indexed colors meet, which is what you'd expect if the colors were
-  drawn by hand
-- Lightness :: a higher value results in lighter colors
-- Detail :: a higher value results in more lines
-- Fine Detail :: a higher value results in more thin lines
-- Shading :: a higher value results in more diagonal shading lines
+boilerblate except for some of the parameters, which were described in
+the [[*Installation and Usage][Installation and Usage]] section above.
 
 The meaning of the values we set is explained in [[https://docs.gimp.org/2.8/en/gimp-using-script-fu-tutorial-first-script.html][section 3.4.8 of the
 GIMP doc]].
