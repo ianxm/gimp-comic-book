@@ -33,6 +33,16 @@ In case you're curious, here are the overlay and background layers
 that make up the final result:
 [[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_overlays_3.jpg]]
 [[https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg]]
+** Installation and Usage
+To install, basically you just copy [[https://raw.githubusercontent.com/ianxm/gimp-comic-book/main/scripts/comic-book.scm][the script]] to your local plugin
+directory and restart GIMP. There are detailed instructions [[https://thegimptutorials.com/how-to-install-gimp-plugins/][here]].
+
+If there are any people in the image being converted, results will be
+better if you select their faces before running the filter. The
+ellipse select tool works well for this.
+
+Run the filter by choosing it from the *Filters* > *Artistic*
+menu. The options are described in the [[*register][register section]].
 
 ** Filter
 *** General Idea
@@ -159,7 +169,7 @@ Finally we flush the GIMP display to update the image in the buffer.
   (define (script-fu-comic-book image background-layer
                                 num-face-colors num-background-colors smoothness
                                 lightness detail fine-detail shading)
-    ;; (gimp-image-undo-group-start image)
+    (gimp-image-undo-group-start image)
 
     (let* ((orig-width (car (gimp-image-width image)))
            (orig-height (car (gimp-image-height image)))
@@ -216,7 +226,7 @@ Finally we flush the GIMP display to update the image in the buffer.
         (gimp-image-select-item image CHANNEL-OP-ADD selection)
         (gimp-image-remove-channel image selection)))
 
-    ;; (gimp-image-undo-group-end image)
+    (gimp-image-undo-group-end image)
     (gimp-displays-flush))
 #+end_src
 
@@ -594,9 +604,9 @@ push them away from the face color until its distance is =bump-range=.
          (closest '(() . 0)) ; ( color . dist ) of the closest point to the current point
          (push-sf 0) ; the scale factor to use when pushing points out
          (any-bumped? TRUE)) ; continue filtering / bumping until stable
-  
+
     <<find-prune-range>>
-  
+
     ;; remove black and white from face colors
     (set! face-colors (foldr (lambda (x y)
                                (if (or (< (script-fu-comic-dist y black) prune-range)
@@ -605,7 +615,7 @@ push them away from the face color until its distance is =bump-range=.
                                    (cons y x)))
                              '()
                              face-colors))
-  
+
     ;; remove black, white and any colors within prune-range of face colors from background colors
     (while (= any-bumped? TRUE)
            (set! any-bumped? FALSE)

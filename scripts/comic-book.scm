@@ -19,7 +19,7 @@
 (define (script-fu-comic-book image background-layer
                               num-face-colors num-background-colors smoothness
                               lightness detail fine-detail shading)
-  ;; (gimp-image-undo-group-start image)
+  (gimp-image-undo-group-start image)
 
   (let* ((orig-width (car (gimp-image-width image)))
          (orig-height (car (gimp-image-height image)))
@@ -361,7 +361,7 @@
       (gimp-image-select-item image CHANNEL-OP-ADD selection)
       (gimp-image-remove-channel image selection)))
 
-  ;; (gimp-image-undo-group-end image)
+  (gimp-image-undo-group-end image)
   (gimp-displays-flush))
 
 (define (script-fu-comic-closest p points)

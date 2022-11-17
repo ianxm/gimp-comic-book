@@ -1,28 +1,7 @@
 
-# Table of Contents
-
-1.  [Comic Book Filter](#orgadee248)
-    1.  [Overview](#orgd724c42)
-    2.  [Example](#org0acbd7b)
-    3.  [Filter](#orgcaf1fa9)
-        1.  [General Idea](#orgbb46d50)
-        2.  [Script](#org33c0359)
-    4.  [Previous Attemps](#org1b2f9d9)
-        1.  [Sketch A](#org1a483c3)
-        2.  [Sketch B](#orgf8901fa)
-        3.  [Comic Book A](#org5276df5)
-        4.  [Comic Book B](#org2094a2a)
-    5.  [References](#orgb6fd4a9)
-2.  [Literate Programming](#orgb957424)
-
-
-
-<a id="orgadee248"></a>
 
 # Comic Book Filter
 
-
-<a id="orgd724c42"></a>
 
 ## Overview
 
@@ -40,8 +19,6 @@ and build GIMP yourself which, unfortunately, is harder than it sounds
 since GIMP requires several dependencies that also must be locally
 compiled.
 
-
-<a id="org0acbd7b"></a>
 
 ## Example
 
@@ -62,12 +39,21 @@ that make up the final result:
 ![img](https://ianxm-githubfiles.s3.amazonaws.com/gimp-comic-book/utah_background_2.jpg)
 
 
-<a id="orgcaf1fa9"></a>
+## Installation and Usage
+
+To install, basically you just copy [the script](https://raw.githubusercontent.com/ianxm/gimp-comic-book/main/scripts/comic-book.scm) to your local plugin
+directory and restart GIMP. There are detailed instructions [here](https://thegimptutorials.com/how-to-install-gimp-plugins/).
+
+If there are any people in the image being converted, results will be
+better if you select their faces before running the filter. The
+ellipse select tool works well for this.
+
+Run the filter by choosing it from the **Filters** > **Artistic**
+menu. The options are described in the [register section](#org7d1c8fb).
+
 
 ## Filter
 
-
-<a id="orgbb46d50"></a>
 
 ### General Idea
 
@@ -85,8 +71,6 @@ skin tones.
 
 The final script is [here](scripts/comic-book.scm).
 
-
-<a id="org33c0359"></a>
 
 ### Script
 
@@ -192,7 +176,7 @@ into a single script for GIMP.
         (define (script-fu-comic-book image background-layer
                                       num-face-colors num-background-colors smoothness
                                       lightness detail fine-detail shading)
-          ;; (gimp-image-undo-group-start image)
+          (gimp-image-undo-group-start image)
         
           (let* ((orig-width (car (gimp-image-width image)))
                  (orig-height (car (gimp-image-height image)))
@@ -249,7 +233,7 @@ into a single script for GIMP.
               (gimp-image-select-item image CHANNEL-OP-ADD selection)
               (gimp-image-remove-channel image selection)))
         
-          ;; (gimp-image-undo-group-end image)
+          (gimp-image-undo-group-end image)
           (gimp-displays-flush))
     
     Here we create a layer that outlines shapes, which we will call the
@@ -727,15 +711,11 @@ into a single script for GIMP.
             ret))
 
 
-<a id="org1b2f9d9"></a>
-
 ## Previous Attemps
 
 I made several other attempts before settling on the above technique.
 The main ones are listed in this section.
 
-
-<a id="org1a483c3"></a>
 
 ### Sketch A
 
@@ -764,8 +744,6 @@ This is an example:
             -   Filters > Edge Detect > Edge (Sobel, Black, 1)
         -   set mode DIVIDE
 
-
-<a id="orgf8901fa"></a>
 
 ### Sketch B
 
@@ -809,8 +787,6 @@ This is an example:
         -   Image > Mode > Indexed
         -   Image > Mode > RGB
 
-
-<a id="org5276df5"></a>
 
 ### Comic Book A
 
@@ -856,8 +832,6 @@ This is an example:
         -   Image > Mode > RGB
 
 
-<a id="org2094a2a"></a>
-
 ### Comic Book B
 
 The last version struggled with very small images, so this one scales
@@ -889,16 +863,12 @@ This is an example:
         -   merge visible layers
 
 
-<a id="orgb6fd4a9"></a>
-
 ## References
 
 -   [script-fu tutorial](https://docs.gimp.org/en/gimp-using-script-fu-tutorial-script.html)
 -   [scheme reference](https://schemers.org/Documents/Standards/R5RS/r5rs.pdf)
 -   [GIMP's tinyscheme implementation](https://gitlab.gnome.org/GNOME/gimp/-/blob/master/plug-ins/script-fu/tinyscheme/Manual.txt)
 
-
-<a id="orgb957424"></a>
 
 # Literate Programming
 
